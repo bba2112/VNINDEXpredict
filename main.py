@@ -48,7 +48,7 @@ def run_once(engine, symbols):
     inserted_total = 0
     batch_count = (len(symbols) + BATCH_SIZE - 1) // BATCH_SIZE
 
-    for batch_idx, batch_symbols in enumerate(chunked(symbols, BATCH_SIZE), start=1):
+    for batch_idx, batch_symbols in enumerate(chunked(symbols, BATCH_SIZE), start=66): #batch hien tai 66
         print(f"\n=== Batch {batch_idx}/{batch_count}: {len(batch_symbols)} ma ===")
 
         frames = []
