@@ -3,7 +3,7 @@ from vnstock import Listing, Quote, register_user
 import pandas as pd
 import time
 import os
-register_user(api_key="vnstock_7eacb460af93237c84ccc9f00a33e729")
+
 
 
 
@@ -13,7 +13,8 @@ SQL_DB = "StockDB"
 TABLE_NAME = "stocks"
 
 # Data range
-START_DATE = "2024-01-01"
+START_DATE = (pd.Timestamp.today() - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+
 END_DATE = pd.Timestamp.today().strftime("%Y-%m-%d")
 
 
@@ -42,13 +43,13 @@ def chunked(items, size):
 
 
 def run_once(engine, symbols):
-    BATCH_SLEEP_SECONDS = 270
+    BATCH_SLEEP_SECONDS = 30
     end_date = pd.Timestamp.today().strftime("%Y-%m-%d")
-    BATCH_SIZE = 19
+    BATCH_SIZE = 50
     inserted_total = 0
     batch_count = (len(symbols) + BATCH_SIZE - 1) // BATCH_SIZE
 
-    for batch_idx, batch_symbols in enumerate(chunked(symbols, BATCH_SIZE), start=66): #batch hien tai 66
+    for batch_idx, batch_symbols in enumerate(chunked(symbols, BATCH_SIZE), start=1): 
         print(f"\n=== Batch {batch_idx}/{batch_count}: {len(batch_symbols)} ma ===")
 
         frames = []
@@ -59,7 +60,6 @@ def run_once(engine, symbols):
                 if raw is None or raw.empty:
                     print(f"{symbol}: khong co du lieu")
                     continue
-
                 df = raw[["time", "open", "high", "low", "close", "volume"]].copy()
                 df["time"] = pd.to_datetime(df["time"], errors="coerce").dt.normalize()
                 for col in ["open", "high", "low", "close"]:
