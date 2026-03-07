@@ -16,8 +16,6 @@ try:
 except Exception:
     GeminiAI = None
 
-
-st.balloons()
 st.set_page_config(page_title="VN Index Dashboard", layout="wide")
 st.title("VNSTOCK Dashboard")
 
@@ -71,13 +69,8 @@ quote_symbol = quote_symbols[selected_pos]
 group_symbol = group_symbols[selected_pos]
 
 def get_gemini_api_key() -> str:
-    try:    
-        secret_key = st.secrets.get("GEMINI_API_KEY", "AIzaSyDqJlhFMyLXX0ddWEDqxeZy24YsFFlk7x4")
-    except Exception:
-        secret_key = ""
-    env_key = os.getenv("GEMINI_API_KEY", "AIzaSyDqJlhFMyLXX0ddWEDqxeZy24YsFFlk7x4")
-    return (secret_key or env_key or "").strip()
-
+    env_key = os.getenv("GEMINI_API_KEY", "").strip()
+    return env_key
 
 @st.cache_resource
 def get_gemini_client(api_key: str):
@@ -479,7 +472,7 @@ if not first_bar.empty:
 else:
     ref_price_9h = float(df.iloc[0]["open"])
 
-left, right = st.columns([5, 2], gap="small")
+left, right = st.columns([5, 5], gap="small")
 with left:
     # Giá tham chiếu: giá mở của phiên gần nhất trong dữ liệu đang xem
     ref_price = ref_price_9h
@@ -527,15 +520,100 @@ with left:
     st.plotly_chart(fig, use_container_width=True)
 
 with right:
-    st.metric("Giá đóng gần nhất", f"{df['close'].iloc[-1]:,.2f}")
-    st.metric("Cao nhất", f"{df['high'].max():,.2f}")
-    st.metric("Thấp nhất", f"{df['low'].min():,.2f}")
-    st.metric("Số phiên", f"{len(df):,}")
+    try:
+        fig_combo, ax_left = plt.subplots(figsize=(10, 6))
+        volume_m = df["volume"] / 1_000_000
+        close_k = df["close"] / 1_000
+
+        ax_left.bar(df["time"], volume_m, color="#93c5fd", alpha=0.8, label="Volume")
+        ax_left.set_ylabel("Volume (M)")
+        ax_left.tick_params(axis="x", rotation=25)
+        ax_left.grid(axis="y", alpha=0.25, linestyle="--")
+
+        ax_right = ax_left.twinx()
+        ax_right.plot(df["time"], close_k, color="#ef4444", linewidth=2, label="Close")
+        ax_right.set_ylabel("Price (K)")
+
+        ax_left.set_title("Giá đóng cửa và khối lượng giao dịch - Hợp đồng tương lai VN30F1M")
+        fig_combo.tight_layout()
+        st.pyplot(fig_combo, clear_figure=True)
+    except Exception as combo_exc:
+        st.warning(f"Không vẽ được biểu đồ combo: {combo_exc}")
 
 
-st.markdown("### Trợ lí AI")
-with st.expander("Phân tích bằng Gemini", expanded=False):
-    api_key = get_gemini_api_key()
+st.markdown(
+    """
+    <style>
+    @keyframes ai-pop-in {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.92);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    @keyframes ai-pop-out {
+        from {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(8px) scale(0.95);
+        }
+    }
+
+    div[data-testid="stPopover"] {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 999;
+    }
+
+    div[data-testid="stPopover"] button {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        padding: 0;
+        font-size: 24px;
+        border: 0;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.20);
+        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    div[data-testid="stPopover"] button:hover {
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+        filter: saturate(1.08);
+    }
+
+    /* Open state: apply pop-in when popover is visible */
+    div[data-baseweb="popover"]:not([data-popper-reference-hidden="true"]):not([aria-hidden="true"]):not([hidden]) > div {
+        transform-origin: bottom right !important;
+        animation: ai-pop-in 2200ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+        border-radius: 14px !important;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22) !important;
+    }
+
+    /* Close state: cover multiple hidden-state variants across BaseWeb/Streamlit versions */
+    div[data-baseweb="popover"][data-popper-reference-hidden="true"] > div,
+    div[data-baseweb="popover"][aria-hidden="true"] > div,
+    div[data-baseweb="popover"][hidden] > div,
+    div[data-baseweb="popover"][style*="visibility: hidden"] > div,
+    div[data-baseweb="popover"][style*="opacity: 0"] > div {
+        animation: ai-pop-out 2200ms cubic-bezier(0.4, 0, 1, 1) both !important;
+        pointer-events: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+api_key = get_gemini_api_key()
+with st.popover("💬", help="Trợ lí AI", use_container_width=False):
+    st.markdown("### Trợ lí AI")
     user_question = st.text_area(
         "Nhập câu hỏi",
         value="Phân tích xu hướng ngắn hạn, vùng hỗ trợ/kháng cự, rủi ro và hành động đề xuất.",
@@ -543,7 +621,7 @@ with st.expander("Phân tích bằng Gemini", expanded=False):
         key="ai_user_question",
     )
 
-    if st.button("Gửi cho AI", use_container_width=True, key="ai_submit_btn"):
+    if st.button("Gửi", use_container_width=True, key="ai_submit_btn"):
         if GeminiAI is None:
             st.error("Không import được gemini_ai trong môi trường chạy Streamlit.")
         elif not api_key:
@@ -564,11 +642,18 @@ with st.expander("Phân tích bằng Gemini", expanded=False):
                     response = client.model.generate_content(prompt)
                 st.session_state["ai_answer_text"] = getattr(response, "text", "").strip() or "AI không trả về nội dung."
             except Exception as exc:
-                st.error(f"Lỗi gọi Gemini: {exc}")
+                err_text = str(exc)
+                if "reported as leaked" in err_text or "403" in err_text:
+                    st.error(
+                        "Gemini API key đã bị thu hồi hoặc không hợp lệ (403). "
+                        "Hãy tạo key mới và cập nhật GEMINI_API_KEY trong st.secrets hoặc biến môi trường."
+                    )
+                else:
+                    st.error(f"Lỗi gọi Gemini: {exc}")
 
-if st.session_state.get("ai_answer_text"):
-    st.markdown("#### Kết quả AI")
-    st.markdown(st.session_state["ai_answer_text"])
+    if st.session_state.get("ai_answer_text"):
+        st.markdown("#### Kết quả AI")
+        st.markdown(st.session_state["ai_answer_text"])
 
 st.markdown("---")
 st.subheader(f"Danh sách công ty trong rổ: {group_symbol}")
@@ -626,8 +711,3 @@ else:
         row_idx = selected_rows[0]
         selected_symbol = str(show_df.iloc[row_idx]["symbol"])
         show_company_popup(selected_symbol)
-
-
-
-
-
