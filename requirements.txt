@@ -3,7 +3,7 @@ plotly
 pandas
 matplotlib
 altair
-vnstock
+vnstock >= 3.5.0
 sqlalchemy
 pymssql
 pyodbc

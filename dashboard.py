@@ -715,7 +715,7 @@ try:
         selected_label, start_date, end_date
     )
 except Exception as exc:
-    st.error(f"Không thể tải dữ liệu chartt {selected_label} (symbol={quote_symbol}): {exc}")
+    st.error(f"Không thể tải dữ liệu chart {selected_label} (symbol={quote_symbol}): {exc}")
     st.stop()
 
 if df_main.empty:
