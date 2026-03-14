@@ -59,10 +59,23 @@ ticker_text_html = html_std.escape(ticker_text)
 import base64
 
 def _img_to_base64(path: str) -> str:
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode("ascii")
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("ascii")
+    except Exception:
+        return ""
 
-logo_b64 = _img_to_base64("C:\\Users\\kenda\\Desktop\\New folder (2)\\image\\Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png")
+logo_path = os.path.join(
+    os.path.dirname(__file__),
+    "image",
+    "Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png",
+)
+logo_b64 = _img_to_base64(logo_path)
+logo_html = (
+    f'<img class="topbar__logo" src="data:image/png;base64,{logo_b64}" alt="logo" />'
+    if logo_b64
+    else ""
+)
 
 st.components.v1.html(
     f"""
@@ -174,7 +187,7 @@ st.components.v1.html(
     </style>
 
     <div class="topbar">
-        <img class="topbar__logo" src="data:image/png;base64,{logo_b64}" alt="logo" />
+        {logo_html}
         <div class="topbar__clock" id="topbar-clock">--:--:--</div>
         <div class="topbar__controls">
             <button class="topbar__btn" id="toggle-theme">Light</button>
