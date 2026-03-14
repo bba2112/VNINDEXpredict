@@ -664,14 +664,34 @@ def load_index_history(label: str, start_dt, end_dt):
     if chart_start_ts > chart_end_ts:
         chart_end_ts = chart_start_ts
 
-    quote = Quote(symbol=quote_symbol_local, source="VCI")
-    raw = quote.history(
-        start=chart_start_ts.strftime("%Y-%m-%d %H:%M:%S"),
-        end=chart_end_ts.strftime("%Y-%m-%d %H:%M:%S"),
-        interval="1m",
-    )
+    raw = None
+    fetch_errors = []
+    for src in ("VCI", "TCBS"):
+        try:
+            quote = Quote(symbol=quote_symbol_local, source=src)
+            raw = quote.history(
+                start=chart_start_ts.strftime("%Y-%m-%d %H:%M:%S"),
+                end=chart_end_ts.strftime("%Y-%m-%d %H:%M:%S"),
+                interval="1m",
+            )
+            if raw is None or raw.empty:
+                raw = quote.history(
+                    start=chart_start_ts.strftime("%Y-%m-%d %H:%M:%S"),
+                    end=chart_end_ts.strftime("%Y-%m-%d %H:%M:%S"),
+                    interval="1d",
+                )
+            if raw is None or raw.empty:
+                fetch_errors.append(f"{src}: history rỗng")
+                raw = None
+                continue
+            break
+        except Exception as exc:
+            fetch_errors.append(f"{src} history: {type(exc).__name__}: {exc}")
+            raw = None
 
     if raw is None or raw.empty:
+        if fetch_errors:
+            raise RuntimeError(" | ".join(fetch_errors))
         return pd.DataFrame(), chart_start_ts, chart_end_ts, 0.0
 
     data = raw[["time", "open", "high", "low", "close", "volume"]].copy()
