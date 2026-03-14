@@ -666,7 +666,7 @@ def load_index_history(label: str, start_dt, end_dt):
 
     raw = None
     fetch_errors = []
-    for src in ("VCI", "TCBS"):
+    for src in ("VCI", "KBS"):
         try:
             quote = Quote(symbol=quote_symbol_local, source=src)
             raw = quote.history(
