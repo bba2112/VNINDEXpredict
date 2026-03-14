@@ -649,7 +649,7 @@ def show_company_popup(symbol: str) -> None:
                     st.dataframe(intraday_df, use_container_width=True, height=420)
 
         except Exception as exc:
-            st.warning(f"Không thể tải dữ liệu chartt {symbol}: {exc}")
+            st.warning(f"Không thể tải dữ liệu chart {symbol}: {exc}")
 
 
 @st.cache_data(ttl=300)
@@ -695,7 +695,7 @@ try:
         selected_label, start_date, end_date
     )
 except Exception as exc:
-    st.error(f"Không thể tải dữ liệu chart {selected_label} (symbol={quote_symbol}): {exc}")
+    st.error(f"Không thể tải dữ liệu chartt {selected_label} (symbol={quote_symbol}): {exc}")
     st.stop()
 
 if df_main.empty:
