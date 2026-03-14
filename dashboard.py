@@ -695,7 +695,7 @@ try:
         selected_label, start_date, end_date
     )
 except Exception as exc:
-    st.error(f"Không thể tải dữ liệu chartt {selected_label} (symbol={quote_symbol}): {exc}")
+    st.error(f"Không thể tải dữ liệu chart {selected_label} (symbol={quote_symbol}): {exc}")
     st.stop()
 
 if df_main.empty:
@@ -711,7 +711,7 @@ for label in index_options:
             df_tmp, _, _, ref_tmp = load_index_history(label, start_date, end_date)
             index_data[label] = (df_tmp, ref_tmp)
     except Exception as exc:
-        st.error(f"Không thể tải dữ liệu chartt {label}: {exc}")
+        st.error(f"Không thể tải dữ liệu chart {label}: {exc}")
         st.stop()
 
 
