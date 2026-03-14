@@ -5,3 +5,5 @@ matplotlib
 altair
 vnstock
 sqlalchemy
+pymssql
+pyodbc

@@ -4,14 +4,32 @@ import streamlit as st
 from datetime import date, timedelta
 from vnstock.explorer.misc.gold_price import sjc_gold_price
 
-st.set_page_config(page_title="Giá vàng hôm nay", layout="wide")
-st.title("Bảng giá vàng SJC")
+st.set_page_config(page_title="Giá vàng hôm nay - Greatfut", layout="wide")
 
+def _nav_button(label: str, page_path: str) -> None:
+    if hasattr(st, "switch_page"):
+        if st.button(label, use_container_width=True):
+            st.switch_page(page_path)
+        return
+    if hasattr(st, "page_link"):
+        st.page_link(page_path, label=label, use_container_width=True)
+        return
+    st.info("Streamlit không hỗ trợ chuyển trang trong phiên bản này.")
+
+a1, a2, a3 = st.columns(3)
+with a1:
+    _nav_button("Bảng giá thị trường", "./dashboard.py")
+with a2:
+    _nav_button("Danh sách các quỹ", "pages/Quymo.py")
+with a3:
+    _nav_button("VNData", "pages/VNIndex.py")
+
+st.title("Bảng giá vàng SJC")
 
 @st.cache_data(ttl=3600)
 def load_gold_price() -> pd.DataFrame:
     end_date = date.today()
-    start_date = end_date - timedelta(days=365 * 3)
+    start_date = end_date - timedelta(days=365)
 
     snapshots: list[pd.DataFrame] = []
     for day in pd.date_range(start=start_date, end=end_date, freq="7D"):
@@ -57,7 +75,7 @@ def _to_numeric(series: pd.Series) -> pd.Series:
 
 
 try:
-    with st.spinner("Đang tải dữ liệu giá vàng 3 năm..."):
+    with st.spinner("Đang tải dữ liệu giá vàng ..."):
         df = load_gold_price()
 except Exception as exc:
     st.error(f"Không tải được dữ liệu giá vàng: {exc}")

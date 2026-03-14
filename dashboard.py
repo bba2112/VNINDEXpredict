@@ -2,6 +2,9 @@
 import plotly.graph_objects as go
 import streamlit as st
 import matplotlib.pyplot as plt
+from constants import index_options
+import html as html_std
+
 from vnstock import Company, Listing, Quote
 try:
     from streamlit_elements import elements, mui, html
@@ -15,51 +18,254 @@ try:
     from gemini_ai import GeminiAI
 except Exception:
     GeminiAI = None
+from constants import (
+    index_options,
+    quote_symbols,
+    group_symbols,
+    GROUP_ELIGIBLE,
+    INDEX_TO_QUOTE,
+)
 
-st.set_page_config(page_title="VN Index Dashboard", layout="wide")
-st.title("VNSTOCK Dashboard")
+st.set_page_config(page_title="Dữ liệu - Greatfut iBoard", layout="wide")
 
-DEFAULT_CHOICE = "-- Chọn --"
-index_options = [
-    "VNINDEX", "VN30", "VNMidCap","VN100","HNX30",
-     "UPCOM"
-]
+# Auto-refresh page to pick up ticker file changes.
+st.components.v1.html(
+    "<script>setTimeout(() => window.location.reload(), 3600000);</script>",
+    height=0,
+)
 
-# Mapping co dinh theo vi tri: index_options[i] -> quote_symbols[i], group_symbols[i]
+# Placeholder ticker text (used if no file-driven content yet)
+_ticker_default = (
+    "Tin nhanh: VNINDEX biến động mạnh trong phiên | VN30 giữ nhịp | "
+    "Thanh khoản cải thiện | Cập nhật từ nguồn API sẽ thay thế nội dung này"
+)
 
-#Biểu đồ
-quote_symbols = [
-    "VNINDEX", "VN30", "VNMidCap", "VN100","HNX30",
-     "UpComIndex"
-]
-#List
-group_symbols = [
-    "VNINDEX", "VN30", "VNMidCap","VN100","HNX30",
-    "UPCOM"
-]
-#Cho phép xuất hiện
-GROUP_ELIGIBLE = {
-    "HOSE", "VN30", "VNMidCap", "VN100","HNX30",
-    "UPCOM"
-}
+TICKER_FILE = os.path.join(os.path.dirname(__file__), "ticker_text.txt")
 
-c1, c2, c3 = st.columns([1, 1, 1])
+def load_ticker_text(default_text: str) -> str:
+    try:
+        if os.path.exists(TICKER_FILE):
+            with open(TICKER_FILE, "r", encoding="utf-8", errors="replace") as f:
+                text = f.read().strip()
+                if text:
+                    return text
+    except Exception:
+        pass
+    return default_text
+
+ticker_text = load_ticker_text(_ticker_default)
+ticker_text_html = html_std.escape(ticker_text)
+
+import base64
+
+def _img_to_base64(path: str) -> str:
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode("ascii")
+
+logo_b64 = _img_to_base64("C:\\Users\\kenda\\Desktop\\New folder (2)\\image\\Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png")
+
+st.components.v1.html(
+    f"""
+    <style>
+    .topbar {{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
+        border-radius: 10px;
+        # background: #f8fafc;
+        # color: #0f172a;
+    }}
+    .topbar__logo {{
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        border-radius: 8px;
+    }}
+    .topbar__controls {{
+        display: flex;
+        gap: 6px;
+    }}
+    .topbar__btn {{
+        padding-left: 5px;
+        border: 1px solid #cbd5f5;
+        # background: #ffffff;
+        # color: #0f172a;
+        border-radius: 999px;
+        padding: 10px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 2000ms ease, box-shadow 2000ms ease, filter 2000ms ease;
+    }}
+    .news-ticker {{
+        flex: 1;
+        overflow: hidden;
+        white-space: nowrap;
+        padding: 8px 12px;
+        color: #f8fafc;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+        border-radius: 10px;
+        background: #0f172a;
+    }}
+    .news-ticker__track {{
+        display: inline-block;
+        padding-left: 100%;
+        animation: news-ticker-scroll 20s linear infinite;
+    }}
+    @keyframes news-ticker-scroll {{
+        0% {{ transform: translateX(0); }}
+        100% {{ transform: translateX(-100%); }}
+    }}
+    .topbar__clock {{
+        min-width: 96px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }}
+    .news-ticker__track[data-lang="en"] {{
+        display: none;
+    }}
+    /* Topbar theme */
+    .topbar.theme-dark {{
+        background: #4F4F4F;
+        # color: #f8fafc;
+        
+    }}
+    .topbar.theme-dark .topbar__btn {{
+        background: #0b1220;
+        color: #f8fafc;
+        border-color: #1e293b;
+    }}
+    .topbar.theme-dark .news-ticker {{
+        # background: #111827;
+        color: #e2e8f0;
+    }}
+
+    /* Global theme */
+    body.theme-dark {{
+        background: #0b1220 !important;
+        color: #e5e7eb !important;
+    }}
+    body.theme-dark .stApp {{
+        background: #0b1220 !important;
+        color: #e5e7eb !important;
+    }}
+    body.theme-dark h1,
+    body.theme-dark h2,
+    body.theme-dark h3,
+    body.theme-dark h4,
+    body.theme-dark h5,
+    body.theme-dark h6,
+    body.theme-dark p,
+    body.theme-dark span,
+    body.theme-dark label,
+    body.theme-dark div {{
+        color: #e5e7eb !important;
+    }}
+    body.theme-light {{
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }}
+    body.theme-light .stApp {{
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }}
+    </style>
+
+    <div class="topbar">
+        <img class="topbar__logo" src="data:image/png;base64,{logo_b64}" alt="logo" />
+        <div class="topbar__clock" id="topbar-clock">--:--:--</div>
+        <div class="topbar__controls">
+            <button class="topbar__btn" id="toggle-theme">Light</button>
+            <button class="topbar__btn" id="toggle-lang">VI</button>
+        </div>
+        <div class="news-ticker">
+            <span class="news-ticker__track" data-lang="vi">{ticker_text_html}</span>
+            <span class="news-ticker__track" data-lang="en">
+                Breaking: VNINDEX volatile | VN30 steady | Liquidity improving | API feed will replace this
+            </span>
+        </div>
+    </div>
+
+    <script>
+    (function() {{
+        const clockEl = document.getElementById("topbar-clock");
+        const topbar = document.querySelector(".topbar");
+        const themeBtn = document.getElementById("toggle-theme");
+        const langBtn = document.getElementById("toggle-lang");
+        const trackVi = document.querySelector('.news-ticker__track[data-lang="vi"]');
+        const trackEn = document.querySelector('.news-ticker__track[data-lang="en"]');
+        function pad(n) {{ return String(n).padStart(2, "0"); }}
+        function tick() {{
+            const now = new Date();
+            const fmt = new Intl.DateTimeFormat("en-GB", {{
+                timeZone: "Asia/Ho_Chi_Minh",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            }});
+            clockEl.textContent = fmt.format(now);
+        }}
+        tick();
+        setInterval(tick, 1000);
+
+        function applyTheme(isDark) {{
+            topbar.classList.toggle("theme-dark", isDark);
+            document.body.classList.toggle("theme-dark", isDark);
+            document.body.classList.toggle("theme-light", !isDark);
+            themeBtn.textContent = isDark ? "Dark" : "Light";
+        }}
+        // Initialize as light theme by default
+        applyTheme(false);
+
+        themeBtn.addEventListener("click", () => {{
+            const isDark = !document.body.classList.contains("theme-dark");
+            applyTheme(isDark);
+        }});
+        langBtn.addEventListener("click", () => {{
+            const viOn = trackVi.style.display !== "none";
+            trackVi.style.display = viOn ? "none" : "inline-block";
+            trackEn.style.display = viOn ? "inline-block" : "none";
+            langBtn.textContent = viOn ? "EN" : "VI";
+        }});
+    }})();
+    </script>
+    """,
+    height=80,
+)
+
+def _nav_button(label: str, page_path: str) -> None:
+    if hasattr(st, "switch_page"):
+        if st.button(label, use_container_width=True):
+            st.switch_page(page_path)
+        return
+    if hasattr(st, "page_link"):
+        st.page_link(page_path, label=label, use_container_width=True)
+        return
+    st.info("Streamlit không hỗ trợ chuyển trang trong phiên bản này.")
+
+a1, a2, a3 = st.columns(3)
+with a1:
+    _nav_button("Giá vàng", "pages/GoldPrice.py")
+with a2:
+    _nav_button("Danh sách các quỹ", "pages/Quymo.py")
+with a3:
+    _nav_button("VNData", "pages/VNIndex.py")
+
+
+c1, c2 = st.columns([1, 1])
 with c1:
-    selected_index = st.selectbox("Chỉ số", [DEFAULT_CHOICE] + index_options)
-with c2:
     start_date = st.date_input("Từ ngày", pd.Timestamp.today().date())
-with c3:
+with c2:
     end_date = st.date_input("Đến ngày", pd.Timestamp.today().date())
-
-if selected_index == DEFAULT_CHOICE:
-    st.warning("Vui lòng chọn chỉ số")
-    st.stop()
 
 if start_date > end_date:
     st.error("Từ ngày không được lớn hơn đến ngày")
     st.stop()
 
-selected_label = selected_index
+selected_label = index_options[0]
 if len(index_options) != len(quote_symbols) or len(index_options) != len(group_symbols):
     st.error("Cấu hình index_options/quote_symbols/group_symbols không cùng độ dài.")
     st.stop()
@@ -430,115 +636,214 @@ def show_company_popup(symbol: str) -> None:
                     st.dataframe(intraday_df, use_container_width=True, height=420)
 
         except Exception as exc:
-            st.warning(f"Không thể tải dữ liệu chart {symbol}: {exc}")
+            st.warning(f"Không thể tải dữ liệu chartt {symbol}: {exc}")
 
 
-# --- Chart uses quote_symbol ---
-try:
-    chart_start_ts = pd.to_datetime(start_date).normalize() + pd.Timedelta(hours=9)
-    chart_end_ts = pd.to_datetime(end_date).normalize() + pd.Timedelta(hours=15, minutes=30)
+@st.cache_data(ttl=300)
+def load_index_history(label: str, start_dt, end_dt):
+    quote_symbol_local = INDEX_TO_QUOTE.get(label, label)
+
+    chart_start_ts = pd.to_datetime(start_dt).normalize() + pd.Timedelta(hours=9)
+    chart_end_ts = pd.to_datetime(end_dt).normalize() + pd.Timedelta(hours=15, minutes=30)
     now = pd.Timestamp.now(tz="Asia/Ho_Chi_Minh").tz_localize(None)
     chart_end_ts = min(chart_end_ts, now)
 
     if chart_start_ts > chart_end_ts:
         chart_end_ts = chart_start_ts
 
-    quote = Quote(symbol=quote_symbol, source="VCI")
+    quote = Quote(symbol=quote_symbol_local, source="VCI")
     raw = quote.history(
         start=chart_start_ts.strftime("%Y-%m-%d %H:%M:%S"),
         end=chart_end_ts.strftime("%Y-%m-%d %H:%M:%S"),
         interval="1m",
     )
+
+    if raw is None or raw.empty:
+        return pd.DataFrame(), chart_start_ts, chart_end_ts, 0.0
+
+    data = raw[["time", "open", "high", "low", "close", "volume"]].copy()
+    data["time"] = pd.to_datetime(data["time"], errors="coerce")
+    data = data.dropna(subset=["time"]).sort_values("time")
+
+    for col in ["open", "high", "low", "close", "volume"]:
+        data[col] = pd.to_numeric(data[col], errors="coerce")
+
+    first_bar = data[data["time"] >= chart_start_ts].head(1)
+    if not first_bar.empty:
+        ref_price = float(first_bar.iloc[0]["open"])
+    else:
+        ref_price = float(data.iloc[0]["open"])
+
+    return data, chart_start_ts, chart_end_ts, ref_price
+
+# --- Main chart data for selected index (used by AI context) ---
+try:
+    df_main, chart_start_ts, chart_end_ts, ref_price_9h = load_index_history(
+        selected_label, start_date, end_date
+    )
 except Exception as exc:
-    st.error(f"Không thể tải dữ liệu chart {selected_label} (symbol={quote_symbol}): {exc}")
+    st.error(f"Không thể tải dữ liệu chartt {selected_label} (symbol={quote_symbol}): {exc}")
     st.stop()
 
-if raw is None or raw.empty:
+if df_main.empty:
     st.warning(f"Không có dữ liệu chart cho {selected_label} (symbol={quote_symbol})")
     st.stop()
 
+index_data = {}
+for label in index_options:
+    try:
+        if label == selected_label:
+            index_data[label] = (df_main, ref_price_9h)
+        else:
+            df_tmp, _, _, ref_tmp = load_index_history(label, start_date, end_date)
+            index_data[label] = (df_tmp, ref_tmp)
+    except Exception as exc:
+        st.error(f"Không thể tải dữ liệu chartt {label}: {exc}")
+        st.stop()
 
-df = raw[["time", "open", "high", "low", "close", "volume"]].copy()
-df["time"] = pd.to_datetime(df["time"], errors="coerce")
-df = df.dropna(subset=["time"]).sort_values("time")
 
-for col in ["open", "high", "low", "close", "volume"]:
-    df[col] = pd.to_numeric(df[col], errors="coerce")
-
-# Gia tham chieu co dinh: gia mo cua cay nen dau tien tu 9:00 trong khung du lieu da chon
-first_bar = df[df["time"] >= chart_start_ts].head(1)
-if not first_bar.empty:
-    ref_price_9h = float(first_bar.iloc[0]["open"])
-else:
-    ref_price_9h = float(df.iloc[0]["open"])
-
-left, right = st.columns([5, 5], gap="small")
-with left:
-    # Giá tham chiếu: giá mở của phiên gần nhất trong dữ liệu đang xem
-    ref_price = ref_price_9h
-    close_series = df["close"]
-    y_green = close_series.where(close_series >= ref_price)  # trên tham chiếu
-    y_red = close_series.where(close_series < ref_price)     # dưới tham chiếu
-
+def build_index_dropdown_chart(default_label: str):
     fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=df["time"],
-            y=y_green,
-            mode="lines",
-            name="Trên tham chiếu",
-            line=dict(color="#16a34a", width=2),
-            connectgaps=False,
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df["time"],
-            y=y_red,
-            mode="lines",
-            name="Dưới tham chiếu",
-            line=dict(color="#dc2626", width=2),
-            connectgaps=False,
-        )
-    )
+    shapes_by_index = {}
+    annotations_by_index = {}
+    visibility_by_index = {}
 
-    fig.add_hline(
-        y=ref_price,
-        line_dash="dash",
-        line_color="#64748b",
-        line_width=1.5,
-        annotation_text=f"Tham chiếu: {ref_price_9h}",
-        annotation_position="top right",
-    )
+    for idx, label in enumerate(index_options):
+        df_left, ref_left = index_data.get(label, (pd.DataFrame(), 0.0))
+
+        if df_left.empty:
+            x_vals = []
+            y_green = []
+            y_red = []
+            ref_val = 0.0
+        else:
+            ref_val = ref_left
+            close_series = df_left["close"]
+            y_green = close_series.where(close_series >= ref_val)
+            y_red = close_series.where(close_series < ref_val)
+            x_vals = df_left["time"]
+
+        show_legend = idx == 0
+        fig.add_trace(
+            go.Scatter(
+                x=x_vals,
+                y=y_green,
+                mode="lines",
+                name="",
+                line=dict(color="#16a34a", width=2),
+                connectgaps=False,
+                showlegend=show_legend,
+                visible=label == default_label,
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_vals,
+                y=y_red,
+                mode="lines",
+                name="",
+                line=dict(color="#dc2626", width=2),
+                connectgaps=False,
+                showlegend=show_legend,
+                visible=label == default_label,
+            )
+        )
+
+        shapes_by_index[label] = [
+            {
+                "type": "line",
+                "x0": 0,
+                "x1": 1,
+                "xref": "paper",
+                "y0": ref_val,
+                "y1": ref_val,
+                "line": {"color": "#64748b", "width": 1.5, "dash": "dash"},
+            }
+        ]
+        annotations_by_index[label] = [
+            {
+                "text": f"",
+                "xref": "paper",
+                "x": 1,
+                "xanchor": "right",
+                "y": ref_val,
+                "yanchor": "bottom",
+                "showarrow": False,
+                "font": {"size": 12, "color": "#475569"},
+                "bgcolor": "rgba(255,255,255,0.6)",
+            }
+        ]
+
+        visible = [False] * (2 * len(index_options))
+        visible[idx * 2] = True
+        visible[idx * 2 + 1] = True
+        visibility_by_index[label] = visible
+
+    buttons = []
+    for label in index_options:
+        buttons.append(
+            {
+                "label": label,
+                "method": "update",
+                "args": [
+                    {"visible": visibility_by_index[label]},
+                    {
+                        "shapes": shapes_by_index[label],
+                        "annotations": annotations_by_index[label],
+                    },
+                ],
+            }
+        )
 
     fig.update_layout(
-        xaxis_title="Ngày",
+        xaxis_title="",
+        xaxis_showticklabels=False,
         yaxis_title="Giá",
         template="plotly_white",
         height=560,
+        updatemenus=[
+            {
+                "buttons": buttons,
+                "direction": "down",
+                "showactive": True,
+                "x": 0,
+                "y": 1.12,
+                "xanchor": "left",
+                "yanchor": "top",
+            }
+        ],
+        shapes=shapes_by_index[default_label],
+        annotations=annotations_by_index[default_label],
+        margin={"t": 80},
     )
-    st.plotly_chart(fig, use_container_width=True)
+    return fig
 
-with right:
-    try:
-        fig_combo, ax_left = plt.subplots(figsize=(10, 6))
-        volume_m = df["volume"] / 1_000_000
-        close_k = df["close"] / 1_000
 
-        ax_left.bar(df["time"], volume_m, color="#93c5fd", alpha=0.8, label="Volume")
-        ax_left.set_ylabel("Volume (M)")
-        ax_left.tick_params(axis="x", rotation=25)
-        ax_left.grid(axis="y", alpha=0.25, linestyle="--")
-
-        ax_right = ax_left.twinx()
-        ax_right.plot(df["time"], close_k, color="#ef4444", linewidth=2, label="Close")
-        ax_right.set_ylabel("Price (K)")
-
-        ax_left.set_title("Giá đóng cửa và khối lượng giao dịch - Hợp đồng tương lai VN30F1M")
-        fig_combo.tight_layout()
-        st.pyplot(fig_combo, clear_figure=True)
-    except Exception as combo_exc:
-        st.warning(f"Không vẽ được biểu đồ combo: {combo_exc}")
+chart1, chart2, chart3, chart4 = st.columns([5, 5, 5, 5], gap="small")
+with chart1:
+    st.plotly_chart(
+        build_index_dropdown_chart(selected_label),
+        use_container_width=True,
+        key="chart_1",
+    )
+with chart2:
+    st.plotly_chart(
+        build_index_dropdown_chart(selected_label),
+        use_container_width=True,
+        key="chart_2",
+    )
+with chart3:
+    st.plotly_chart(
+        build_index_dropdown_chart(selected_label),
+        use_container_width=True,
+        key="chart_3",
+    )
+with chart4:
+    st.plotly_chart(
+        build_index_dropdown_chart(selected_label),
+        use_container_width=True,
+        key="chart_4",
+    )
 
 
 st.markdown(
@@ -631,7 +936,7 @@ with st.popover("💬", help="Trợ lí AI", use_container_width=False):
         else:
             try:
                 client = get_gemini_client(api_key)
-                context = build_ai_context(df, selected_label, quote_symbol, start_date, end_date)
+                context = build_ai_context(df_main, selected_label, quote_symbol, start_date, end_date)
                 prompt = (
                     "Bạn là trợ lí phân tích chứng khoán Việt Nam. "
                     "Trả lời ngắn gọn theo mục: Xu hướng, Mốc quan trọng, Rủi ro, Gợi ý hành động.\\n\\n"

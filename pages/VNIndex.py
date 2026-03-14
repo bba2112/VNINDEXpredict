@@ -4,71 +4,156 @@ import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine, text
 import vnstock
-from vnstock import Listing
+from vnstock import Listing, Vnstock,Company
 from vnstock.common import viz as _vnstock_viz  # noqa: F401 (registers .viz accessor)
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import os
 
-st.title("VNSTOCK Dashboard")
+st.set_page_config(page_title="Greatfut - VNIndex & Stock Profile")
 
-theme_mode = st.sidebar.selectbox("Tone nền", ["Sáng", "Tối"], index=0)
-is_dark_theme = theme_mode == "Tối"
-plotly_template = "plotly_dark" if is_dark_theme else "plotly_white"
+def _nav_button(label: str, page_path: str) -> None:
+    if hasattr(st, "switch_page"):
+        if st.button(label, use_container_width=True):
+            st.switch_page(page_path)
+        return
+    if hasattr(st, "page_link"):
+        st.page_link(page_path, label=label, use_container_width=True)
+        return
+    st.info("Streamlit không hỗ trợ chuyển trang trong phiên bản này.")
 
-if is_dark_theme:
-    plt.style.use("dark_background")
-    st.markdown(
-        """
-        <style>
-        [data-testid="stAppViewContainer"] {
-            background-color: #0f1117;
-            color: #f3f4f6;
-        }
-        [data-testid="stSidebar"] {
-            background-color: #111827;
-        }
-        [data-testid="stSidebar"] * {
-            color: #f3f4f6 !important;
-        }
-        [data-testid="stHeader"] {
-            background: transparent;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-else:
-    plt.style.use("default")
-    st.markdown(
-        """
-        <style>
-        [data-testid="stAppViewContainer"] {
-            background-color: #ffffff;
-            color: #111827;
-        }
-        [data-testid="stSidebar"] {
-            background-color: #f9fafb;
-        }
-        [data-testid="stSidebar"] * {
-            color: #111827 !important;
-        }
-        [data-testid="stHeader"] {
-            background: transparent;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+a1, a2, a3 = st.columns(3)
+with a1:
+    _nav_button("Bảng giá thị trường", "./dashboard.py")
+with a2:
+    _nav_button("Giá vàng", "pages/GoldPrice.py")
+with a3:
+    _nav_button("Danh sách các quỹ", "pages/Quymo.py")
+
+st.title("Greatfut - VNIndex & Stock Profile")
+
+# st.markdown(
+#     """
+#     <style>
+#     .theme-picker {
+#         position: fixed;
+#         top: 10px;
+#         left: 10px;
+#         z-index: 1000;
+#         width: 120px;
+#     }
+#     .theme-picker label {
+#         display: none !important;
+#     }
+#     .theme-picker [data-baseweb="select"] > div {
+#         min-height: 32px;
+#         height: 32px;
+#         border-radius: 4px;
+#         padding-left: 6px;
+#         padding-right: 6px;
+#         font-size: 12px;
+#     }
+#     .theme-picker [data-baseweb="select"] svg {
+#         width: 14px;
+#         height: 14px;
+#     }
+#     </style>
+#     """,
+#     unsafe_allow_html=True,
+# )
+
+# st.markdown('<div class="theme-picker">', unsafe_allow_html=True)
+# theme_mode = st.selectbox(
+#     "Tone nền",
+#     ["Sáng", "Tối"],
+#     index=0,
+#     label_visibility="collapsed",
+#     key="theme_mode_select",
+# )
+# st.markdown("</div>", unsafe_allow_html=True)
+# is_dark_theme = theme_mode == "Tối"
+# plotly_template = "plotly_dark" if is_dark_theme else "plotly_white"
+
+# if is_dark_theme:
+#     plt.style.use("dark_background")
+#     st.markdown(
+#         """
+#         <style>
+#         [data-testid="stAppViewContainer"] {
+#             background-color: #0f1117;
+#             color: #f3f4f6;
+#         }
+#         [data-testid="stSidebar"] {
+#             background-color: #111827;
+#         }
+#         [data-testid="stSidebar"] * {
+#             color: #f3f4f6 !important;
+#         }
+#         [data-testid="stHeader"] {
+#             background: transparent;
+#         }
+#         </style>
+#         """,
+#         unsafe_allow_html=True,
+#     )
+# else:
+#     plt.style.use("default")
+#     st.markdown(
+#         """
+#         <style>
+#         [data-testid="stAppViewContainer"] {
+#             background-color: #ffffff;
+#             color: #111827;
+#         }
+#         [data-testid="stSidebar"] {
+#             background-color: #f9fafb;
+#         }
+#         [data-testid="stSidebar"] * {
+#             color: #111827 !important;
+#         }
+#         [data-testid="stHeader"] {
+#             background: transparent;
+#         }
+#         </style>
+#         """,
+#         unsafe_allow_html=True,
+#     )
 
 
-SQL_SERVER = "localhost"
-SQL_DB = "StockDB"
 TABLE_NAME = "stocks"
 
 
-engine = create_engine(
-    f"mssql+pyodbc://@{SQL_SERVER}/{SQL_DB}?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes&TrustServerCertificate=yes"
-)
+def get_database_url():
+    db_url = None
+    try:
+        db_url = st.secrets.get("DB_URL")
+    except Exception:
+        db_url = None
+    if not db_url:
+        db_url = os.getenv("DB_URL")
+    if db_url:
+        return db_url
+
+    sql_server = os.getenv("SQL_SERVER", "localhost")
+    sql_db = os.getenv("SQL_DB", "StockDB")
+    sql_user = os.getenv("SQL_USER")
+    sql_password = os.getenv("SQL_PASSWORD")
+
+    if sql_user and sql_password:
+        return f"mssql+pymssql://{sql_user}:{sql_password}@{sql_server}/{sql_db}"
+
+    sql_driver = os.getenv("SQL_DRIVER", "ODBC Driver 17 for SQL Server")
+    driver_param = sql_driver.replace(" ", "+")
+    return (
+        f"mssql+pyodbc://@{sql_server}/{sql_db}"
+        f"?driver={driver_param}&trusted_connection=yes")
+
+
+try:
+    engine = create_engine(get_database_url())
+except Exception as exc:
+    st.error(f"Khong tao duoc ket noi CSDL: {exc}")
+    st.stop()
 
 # Lay danh sach ma HOSE tu vnstock
 try:
@@ -253,7 +338,7 @@ fig.update_layout(
     xaxis_title="Ngày",
     yaxis_title="Giá",
     xaxis_rangeslider_visible=False,
-    template=plotly_template,
+    template="plotly_dark",
 )
 
 st.plotly_chart(fig, use_container_width=True)
@@ -366,61 +451,26 @@ try:
 except Exception as exc:
     st.info(f"Khong the ve heatmap loi nhuan: {exc}")
 
-st.subheader(f"Cổ đông lớn: {selected_symbol}")
+st.subheader(f"Mô tả công ty: {selected_symbol}")
 try:
-    if shareholders_df is None or shareholders_df.empty:
-        raise ValueError("shareholders_df chưa có dữ liệu.")
+    company = Company(symbol=selected_symbol, source="VCI")
+    if hasattr(company, "profile"):
+        profile_df = company.profile()
+    elif hasattr(company, "overview"):
+        profile_df = company.overview()
+    elif hasattr(company, "info"):
+        profile_df = company.info()
+    else:
+        raise AttributeError("Company khong co profile/overview/info")
 
-    pie_df = shareholders_df.copy()
-    if "share_holder" not in pie_df.columns:
-        if "shareholder" in pie_df.columns:
-            pie_df = pie_df.rename(columns={"shareholder": "share_holder"})
-        elif "holder" in pie_df.columns:
-            pie_df = pie_df.rename(columns={"holder": "share_holder"})
-
-    if "share_own_percent" not in pie_df.columns:
-        if "ownership_percent" in pie_df.columns:
-            pie_df = pie_df.rename(columns={"ownership_percent": "share_own_percent"})
-        elif "ownership" in pie_df.columns:
-            pie_df = pie_df.rename(columns={"ownership": "share_own_percent"})
-
-    required_cols = ["share_holder", "share_own_percent"]
-    missing_cols = [col for col in required_cols if col not in pie_df.columns]
-    if missing_cols:
-        raise ValueError(f"Thiếu cột dữ liệu: {', '.join(missing_cols)}")
-
-    pie_df["share_own_percent"] = pd.to_numeric(pie_df["share_own_percent"], errors="coerce")
-    pie_df = pie_df.dropna(subset=["share_own_percent"])
-    if pie_df.empty:
-        raise ValueError("Khong co du lieu ty le so huu hop le.")
-
-    pie_plot_df = pie_df.set_index("share_holder")
-    try:
-        pie_result = pie_plot_df.viz.pie(
-            y="share_own_percent",
-            title=f"Cổ đông lớn {selected_symbol}",
-            figsize=(10, 6),
-            ylabel="",
-            color_palette="stock",
-        )
-    except Exception:
-        pie_result = pie_df.viz.pie(
-            title=f"Cổ đông lớn {selected_symbol}",
-            labels="share_holder",
-            values="share_own_percent",
-            figsize=(10, 6),
-            ylabel="",
-            color_palette="stock",
-        )
-
-    pie_fig = None
-    if isinstance(pie_result, tuple) and len(pie_result) >= 1:
-        pie_fig = pie_result[0]
-    elif hasattr(pie_result, "get_figure"):
-        pie_fig = pie_result.get_figure()
-
-    if pie_fig is not None:
-        st.pyplot(pie_fig, use_container_width=True)
-        plt.close(pie_fig)
+    profile_df.viz.wordcloud(
+        figsize=(10, 6),
+        title=f"{selected_symbol} - Mô tả công ty",
+        max_words=50,
+        color_palette="stock",
+    )
+    st.pyplot(plt.gcf(), clear_figure=True)
 except Exception as exc:
-    st.info(f"Khong the ve pie co dong lon: {exc}")
+    st.info(f"Khong the lay duoc mo ta cong ty: {exc}")
+
+
