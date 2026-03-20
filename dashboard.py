@@ -1,9 +1,10 @@
 ﻿import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 import matplotlib.pyplot as plt
 from constants import index_options
-import html as html_std
+import json
 
 from vnstock import Company, Listing, Quote
 try:
@@ -25,9 +26,13 @@ from constants import (
     GROUP_ELIGIBLE,
     INDEX_TO_QUOTE,
 )
+from common import load_css, render_topbar
 
 st.set_page_config(page_title="Dữ liệu - Greatfut iBoard", layout="wide")
+load_css()
 
+
+### BAR ###
 # Auto-refresh page to pick up ticker file changes.
 st.components.v1.html(
     "<script>setTimeout(() => window.location.reload(), 3600000);</script>",
@@ -54,200 +59,23 @@ def load_ticker_text(default_text: str) -> str:
     return default_text
 
 ticker_text = load_ticker_text(_ticker_default)
-ticker_text_html = html_std.escape(ticker_text)
-
-import base64
-
-def _img_to_base64(path: str) -> str:
-    try:
-        with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode("ascii")
-    except Exception:
-        return ""
 
 logo_path = os.path.join(
     os.path.dirname(__file__),
     "image",
     "Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png",
 )
-logo_b64 = _img_to_base64(logo_path)
-logo_html = (
-    f'<img class="topbar__logo" src="data:image/png;base64,{logo_b64}" alt="logo" />'
-    if logo_b64
-    else ""
+render_topbar(
+    ticker_text=ticker_text,
+    ticker_text_en=(
+        "Breaking: VNINDEX volatile | VN30 steady | Liquidity improving | "
+        "API feed will replace this"
+    ),
+    logo_path=logo_path,
+    clock_timezone="Asia/Ho_Chi_Minh",
+    extra_class="topbar--dashboard",
 )
 
-st.components.v1.html(
-    f"""
-    <style>
-    .topbar {{
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 4px 6px;
-        border-radius: 10px;
-        # background: #f8fafc;
-        # color: #0f172a;
-    }}
-    .topbar__logo {{
-        width: 60px;
-        height: 60px;
-        object-fit: contain;
-        border-radius: 8px;
-    }}
-    .topbar__controls {{
-        display: flex;
-        gap: 6px;
-    }}
-    .topbar__btn {{
-        padding-left: 5px;
-        border: 1px solid #cbd5f5;
-        # background: #ffffff;
-        # color: #0f172a;
-        border-radius: 999px;
-        padding: 10px 10px;
-        font-size: 12px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: transform 2000ms ease, box-shadow 2000ms ease, filter 2000ms ease;
-    }}
-    .news-ticker {{
-        flex: 1;
-        overflow: hidden;
-        white-space: nowrap;
-        padding: 8px 12px;
-        color: #f8fafc;
-        font-weight: 800;
-        letter-spacing: 0.2px;
-        border-radius: 10px;
-        background: #0f172a;
-    }}
-    .news-ticker__track {{
-        display: inline-block;
-        padding-left: 100%;
-        animation: news-ticker-scroll 20s linear infinite;
-    }}
-    @keyframes news-ticker-scroll {{
-        0% {{ transform: translateX(0); }}
-        100% {{ transform: translateX(-100%); }}
-    }}
-    .topbar__clock {{
-        min-width: 96px;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-    }}
-    .news-ticker__track[data-lang="en"] {{
-        display: none;
-    }}
-    /* Topbar theme */
-    .topbar.theme-dark {{
-        background: #4F4F4F;
-        # color: #f8fafc;
-        
-    }}
-    .topbar.theme-dark .topbar__btn {{
-        background: #0b1220;
-        color: #f8fafc;
-        border-color: #1e293b;
-    }}
-    .topbar.theme-dark .news-ticker {{
-        # background: #111827;
-        color: #e2e8f0;
-    }}
-
-    /* Global theme */
-    body.theme-dark {{
-        background: #0b1220 !important;
-        color: #e5e7eb !important;
-    }}
-    body.theme-dark .stApp {{
-        background: #0b1220 !important;
-        color: #e5e7eb !important;
-    }}
-    body.theme-dark h1,
-    body.theme-dark h2,
-    body.theme-dark h3,
-    body.theme-dark h4,
-    body.theme-dark h5,
-    body.theme-dark h6,
-    body.theme-dark p,
-    body.theme-dark span,
-    body.theme-dark label,
-    body.theme-dark div {{
-        color: #e5e7eb !important;
-    }}
-    body.theme-light {{
-        background: #ffffff !important;
-        color: #0f172a !important;
-    }}
-    body.theme-light .stApp {{
-        background: #ffffff !important;
-        color: #0f172a !important;
-    }}
-    </style>
-
-    <div class="topbar">
-        {logo_html}
-        <div class="topbar__clock" id="topbar-clock">--:--:--</div>
-        <div class="topbar__controls">
-            <button class="topbar__btn" id="toggle-theme">Light</button>
-            <button class="topbar__btn" id="toggle-lang">VI</button>
-        </div>
-        <div class="news-ticker">
-            <span class="news-ticker__track" data-lang="vi">{ticker_text_html}</span>
-            <span class="news-ticker__track" data-lang="en">
-                Breaking: VNINDEX volatile | VN30 steady | Liquidity improving | API feed will replace this
-            </span>
-        </div>
-    </div>
-
-    <script>
-    (function() {{
-        const clockEl = document.getElementById("topbar-clock");
-        const topbar = document.querySelector(".topbar");
-        const themeBtn = document.getElementById("toggle-theme");
-        const langBtn = document.getElementById("toggle-lang");
-        const trackVi = document.querySelector('.news-ticker__track[data-lang="vi"]');
-        const trackEn = document.querySelector('.news-ticker__track[data-lang="en"]');
-        function pad(n) {{ return String(n).padStart(2, "0"); }}
-        function tick() {{
-            const now = new Date();
-            const fmt = new Intl.DateTimeFormat("en-GB", {{
-                timeZone: "Asia/Ho_Chi_Minh",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                hour12: false
-            }});
-            clockEl.textContent = fmt.format(now);
-        }}
-        tick();
-        setInterval(tick, 1000);
-
-        function applyTheme(isDark) {{
-            topbar.classList.toggle("theme-dark", isDark);
-            document.body.classList.toggle("theme-dark", isDark);
-            document.body.classList.toggle("theme-light", !isDark);
-            themeBtn.textContent = isDark ? "Dark" : "Light";
-        }}
-        // Initialize as light theme by default
-        applyTheme(false);
-
-        themeBtn.addEventListener("click", () => {{
-            const isDark = !document.body.classList.contains("theme-dark");
-            applyTheme(isDark);
-        }});
-        langBtn.addEventListener("click", () => {{
-            const viOn = trackVi.style.display !== "none";
-            trackVi.style.display = viOn ? "none" : "inline-block";
-            trackEn.style.display = viOn ? "inline-block" : "none";
-            langBtn.textContent = viOn ? "EN" : "VI";
-        }});
-    }})();
-    </script>
-    """,
-    height=80,
-)
 
 def _nav_button(label: str, page_path: str) -> None:
     if hasattr(st, "switch_page"):
@@ -258,6 +86,199 @@ def _nav_button(label: str, page_path: str) -> None:
         st.page_link(page_path, label=label, use_container_width=True)
         return
     st.info("Streamlit không hỗ trợ chuyển trang trong phiên bản này.")
+
+@st.cache_data(ttl=3600)
+def get_hose_symbols() -> list[str]:
+    try:
+        df = Listing(source="VCI").symbols_by_exchange(exchange="HOSE")
+        if isinstance(df, pd.Series):
+            return df.dropna().astype(str).unique().tolist()
+        if isinstance(df, pd.DataFrame) and "symbol" in df.columns:
+            return df["symbol"].dropna().astype(str).unique().tolist()
+    except Exception:
+        pass
+    return []
+
+FAV_LOCAL_KEY = "favorite_symbols"
+
+def _localstorage_remove_favorites(symbols: list[str]) -> None:
+    if not symbols:
+        return
+    safe_symbols = json.dumps([str(s) for s in symbols if str(s).strip()])
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            const key = {json.dumps(FAV_LOCAL_KEY)};
+            const removeList = {safe_symbols};
+            const raw = window.localStorage.getItem(key) || "[]";
+            const list = JSON.parse(raw).filter(s => !removeList.includes(s));
+            window.localStorage.setItem(key, JSON.stringify(list));
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+    # Update local cache file
+    cache_path = os.path.join(os.path.dirname(__file__), ".favorites_cache.json")
+    try:
+        existing = []
+        if os.path.exists(cache_path):
+            with open(cache_path, "r", encoding="utf-8") as f:
+                existing = json.loads(f.read() or "[]")
+        if not isinstance(existing, list):
+            existing = []
+        existing = [s for s in existing if s not in set(symbols)]
+        with open(cache_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(existing, ensure_ascii=False))
+    except Exception:
+        pass
+
+
+def _localstorage_add_favorite(symbol: str) -> None:
+    if not symbol:
+        return
+    symbol = str(symbol).strip().upper()
+    if not symbol:
+        return
+
+    safe_symbol = json.dumps(symbol)
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            const key = {json.dumps(FAV_LOCAL_KEY)};
+            const sym = {safe_symbol};
+            let list = [];
+            try {{
+                const raw = window.localStorage.getItem(key) || "[]";
+                list = JSON.parse(raw);
+                if (!Array.isArray(list)) list = [];
+            }} catch (e) {{
+                list = [];
+            }}
+            if (sym && !list.includes(sym)) {{
+                list.push(sym);
+                window.localStorage.setItem(key, JSON.stringify(list));
+            }}
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+    cache_path = os.path.join(os.path.dirname(__file__), ".favorites_cache.json")
+    try:
+        existing = []
+        if os.path.exists(cache_path):
+            with open(cache_path, "r", encoding="utf-8") as f:
+                existing = json.loads(f.read() or "[]")
+        if not isinstance(existing, list):
+            existing = []
+        if symbol not in existing:
+            existing.append(symbol)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(existing, ensure_ascii=False))
+    except Exception:
+        pass
+def _localstorage_remove_favorites(symbols: list[str]) -> None:
+    symbols = [str(s).strip().upper() for s in symbols if str(s).strip()]
+    if not symbols:
+        return
+    safe_symbols = json.dumps(symbols)
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            const key = {json.dumps(FAV_LOCAL_KEY)};
+            const removeList = {safe_symbols};
+            let list = [];
+            try {{
+                const raw = window.localStorage.getItem(key) || "[]";
+                list = JSON.parse(raw);
+                if (!Array.isArray(list)) list = [];
+            }} catch (e) {{
+                list = [];
+            }}
+            list = list.filter(s => !removeList.includes(String(s).toUpperCase()));
+            window.localStorage.setItem(key, JSON.stringify(list));
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+    cache_path = os.path.join(os.path.dirname(__file__), ".favorites_cache.json")
+    try:
+        existing = []
+        if os.path.exists(cache_path):
+            with open(cache_path, "r", encoding="utf-8") as f:
+                existing = json.loads(f.read() or "[]")
+        if not isinstance(existing, list):
+            existing = []
+        existing = [str(s).strip().upper() for s in existing if str(s).strip()]
+        existing = [s for s in existing if s not in set(symbols)]
+        with open(cache_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps(existing, ensure_ascii=False))
+    except Exception:
+        pass
+
+
+
+def _inject_localstorage_sync() -> None:
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            const key = {json.dumps(FAV_LOCAL_KEY)};
+            function findTarget() {{
+                const doc = window.parent && window.parent.document ? window.parent.document : document;
+                const candidates = Array.from(doc.querySelectorAll("textarea"));
+                return candidates.find(el =>
+                    el.getAttribute("aria-label") === "fav_store_sync" ||
+                    el.getAttribute("placeholder") === "fav_store_sync"
+                );
+            }}
+            function sync() {{
+                const el = findTarget();
+                if (!el) return;
+                const raw = window.localStorage.getItem(key) || "[]";
+                if (el.value !== raw) {{
+                    el.value = raw;
+                    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}
+            }}
+            setTimeout(sync, 0);
+            setTimeout(sync, 200);
+            setTimeout(sync, 800);
+        }})();
+        </script>
+        """,
+        height=0,
+    )
+
+def _get_favorites_from_localstorage() -> list[str]:
+    # Prefer localStorage sync field (source of truth), fallback to cache file.
+    raw = st.session_state.get("fav_store_sync", "")
+    if not raw:
+        cache_path = os.path.join(os.path.dirname(__file__), ".favorites_cache.json")
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    raw = f.read().strip()
+            except Exception:
+                raw = ""
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    return sorted({str(s).strip().upper() for s in data if str(s).strip()})
+
 
 a1, a2, a3 = st.columns(3)
 with a1:
@@ -879,82 +900,12 @@ with chart4:
     )
 
 
-st.markdown(
-    """
-    <style>
-    @keyframes ai-pop-in {
-        from {
-            opacity: 0;
-            transform: translateY(10px) scale(0.92);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-    @keyframes ai-pop-out {
-        from {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(8px) scale(0.95);
-        }
-    }
-
-    div[data-testid="stPopover"] {
-        position: fixed;
-        right: 20px;
-        bottom: 20px;
-        z-index: 999;
-    }
-
-    div[data-testid="stPopover"] button {
-        width: 56px;
-        height: 56px;
-        border-radius: 999px;
-        padding: 0;
-        font-size: 24px;
-        border: 0;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.20);
-        transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
-    }
-
-    div[data-testid="stPopover"] button:hover {
-        transform: translateY(-1px) scale(1.04);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
-        filter: saturate(1.08);
-    }
-
-    /* Open state: apply pop-in when popover is visible */
-    div[data-baseweb="popover"]:not([data-popper-reference-hidden="true"]):not([aria-hidden="true"]):not([hidden]) > div {
-        transform-origin: bottom right !important;
-        animation: ai-pop-in 2200ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
-        border-radius: 14px !important;
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22) !important;
-    }
-
-    /* Close state: cover multiple hidden-state variants across BaseWeb/Streamlit versions */
-    div[data-baseweb="popover"][data-popper-reference-hidden="true"] > div,
-    div[data-baseweb="popover"][aria-hidden="true"] > div,
-    div[data-baseweb="popover"][hidden] > div,
-    div[data-baseweb="popover"][style*="visibility: hidden"] > div,
-    div[data-baseweb="popover"][style*="opacity: 0"] > div {
-        animation: ai-pop-out 2200ms cubic-bezier(0.4, 0, 1, 1) both !important;
-        pointer-events: none !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 api_key = get_gemini_api_key()
 with st.popover("💬", help="Trợ lí AI", use_container_width=False):
     st.markdown("### Trợ lí AI")
     user_question = st.text_area(
         "Nhập câu hỏi",
-        value="Phân tích xu hướng ngắn hạn, vùng hỗ trợ/kháng cự, rủi ro và hành động đề xuất.",
+        value="",
         height=100,
         key="ai_user_question",
     )
@@ -993,9 +944,8 @@ with st.popover("💬", help="Trợ lí AI", use_container_width=False):
         st.markdown("#### Kết quả AI")
         st.markdown(st.session_state["ai_answer_text"])
 
-st.markdown("---")
-st.subheader(f"Danh sách công ty trong rổ: {group_symbol}")
 
+### Danh sách công ty trong rổ ###
 @st.cache_data(ttl=3600)
 def get_group_symbols(group_name: str):
     return Listing(source="VCI").symbols_by_group(group_name)
@@ -1004,28 +954,54 @@ def get_group_symbols(group_name: str):
 def get_exchange_symbols(exchange_name: str):
     return Listing(source="VCI").symbols_by_exchange(exchange=exchange_name)
 
-show_df = pd.DataFrame()
+def render_basket_list(target_group_symbol: str, table_key: str) -> None:
+    st.subheader(f"Danh sách công ty trong rổ: {target_group_symbol}")
 
-try:
-    # --- List uses group_symbol ---
-    if group_symbol == "VNINDEX":
-        basket_df = get_exchange_symbols("HOSE")
-    elif group_symbol in GROUP_ELIGIBLE:
-        basket_df = get_group_symbols(group_symbol)
+    symbol_options = get_hose_symbols()
+    if symbol_options:
+        search_q = st.text_input(
+            "Tìm mã",
+            key=f"fav_search_{table_key}",
+            label_visibility="collapsed",
+            placeholder="Gõ để tìm mã..."
+        )
+        if search_q:
+            q = search_q.strip().upper()
+            filtered = [s for s in symbol_options if q in s.upper()]
+
+            # Ưu tiên: bắt đầu bằng q -> sau đó theo alphabet
+            filtered.sort(key=lambda s: (not s.upper().startswith(q), s))
+        else:
+            filtered = symbol_options
+
+
     else:
+        selected_fav_symbol = st.text_input(
+            "Nhập mã cổ phiếu",
+            key=f"fav_symbol_input_{table_key}",
+            label_visibility="collapsed",
+        )
+
+    try:
+        if target_group_symbol == "VNINDEX":
+            basket_df = get_exchange_symbols("HOSE")
+        elif target_group_symbol in GROUP_ELIGIBLE:
+            basket_df = get_group_symbols(target_group_symbol)
+        else:
+            basket_df = pd.DataFrame()
+
+        if isinstance(basket_df, pd.Series):
+            basket_df = basket_df.to_frame(name="symbol").reset_index(drop=True)
+        elif not isinstance(basket_df, pd.DataFrame):
+            basket_df = pd.DataFrame(basket_df)
+    except Exception as exc:
+        st.warning(f"Không lấy được list cho {target_group_symbol}: {exc}")
         basket_df = pd.DataFrame()
 
-    if isinstance(basket_df, pd.Series):
-        basket_df = basket_df.to_frame(name="symbol").reset_index(drop=True)
-    elif not isinstance(basket_df, pd.DataFrame):
-        basket_df = pd.DataFrame(basket_df)
-except Exception as exc:
-    st.warning(f"Không lấy được list cho {group_symbol}: {exc}")
-    basket_df = pd.DataFrame()
+    if basket_df.empty:
+        st.info(f"Không có danh sách thành phần cho {target_group_symbol}")
+        return
 
-if basket_df.empty:
-    st.info(f"Không có danh sách thành phần cho {group_symbol}")
-else:
     preferred_cols = ["symbol", "organ_name", "exchange", "icb_name2", "icb_name3"]
     show_cols = [c for c in preferred_cols if c in basket_df.columns]
     if not show_cols:
@@ -1040,12 +1016,114 @@ else:
         use_container_width=True,
         on_select="rerun",
         selection_mode="single-row",
-        key="basket_table_select",
+        key=table_key,
     )
-    st.caption(f"Số mã trong list {group_symbol}: {len(show_df)}")
 
     selected_rows = event.selection.rows if event is not None else []
     if selected_rows and "symbol" in show_df.columns:
         row_idx = selected_rows[0]
         selected_symbol = str(show_df.iloc[row_idx]["symbol"])
         show_company_popup(selected_symbol)
+
+
+### CỐ PHIẾU YÊU THÍCH ###
+
+
+tabs = st.tabs(["VNIndex", "...", "Cổ phiếu yêu thích"])
+with tabs[0]:
+    st.markdown("---")
+    render_basket_list(group_symbol, "basket_table_select_current")
+
+with tabs[1]:
+    other_group_options = ["VNINDEX"] + [g for g in GROUP_ELIGIBLE if g != "VNINDEX"]
+    other_group_symbol = st.selectbox(
+        "Chọn rổ khác",
+        other_group_options,
+        index=0,
+        key="other_group_symbol_select",
+        label_visibility="collapsed",
+    )
+    render_basket_list(other_group_symbol, "basket_table_select_other")
+
+with tabs[2]:
+    st.markdown("---")
+    st.text_area(
+        "fav_store_sync",
+        value="",
+        key="fav_store_sync",
+        label_visibility="collapsed",
+        height=1,
+        placeholder="fav_store_sync",
+    )
+    symbol_options = get_hose_symbols()
+    if symbol_options:
+        selected_fav_symbol = st.selectbox(
+            "Chọn mã cổ phiếu",
+            symbol_options,
+            index=0,
+            key="fav_symbol_select",
+            label_visibility="collapsed",
+        )
+    else:
+        selected_fav_symbol = st.text_input(
+            "Nhập mã cổ phiếu",
+            key="fav_symbol_input",
+            label_visibility="collapsed",
+        )
+
+    if st.button("Lưu vào yêu thích", use_container_width=True, key="fav_add_btn"):
+        symbol_value = str(selected_fav_symbol).strip().upper()
+        if symbol_value:
+            _localstorage_add_favorite(symbol_value)
+            st.toast(f"Đã lưu {symbol_value} vào yêu thích.")
+            st.rerun()
+        else:
+            st.info("Vui lòng chọn hoặc nhập mã cổ phiếu.")
+
+    _inject_localstorage_sync()
+    favorites = _get_favorites_from_localstorage()
+    if not favorites:
+        st.info("Chưa có mã nào trong danh sách yêu thích.")
+    else:
+        fav_df = pd.DataFrame(
+            {
+                "Xem": [False] * len(favorites),
+                "symbol": favorites,
+            }
+        )
+        edited_fav_df = st.data_editor(
+            fav_df,
+            use_container_width=True,
+            hide_index=True,
+            key="fav_table_editor",
+            column_config={
+                "Xem": st.column_config.CheckboxColumn("Thông tin chi tiết", width="small"),
+                "symbol": st.column_config.TextColumn("Mã cổ phiếu", disabled=True),
+            },
+        )
+
+        selected_symbols = (
+            edited_fav_df.loc[edited_fav_df["Xem"] == True, "symbol"].tolist()
+            if isinstance(edited_fav_df, pd.DataFrame) and "Xem" in edited_fav_df.columns
+            else []
+        )
+        if selected_symbols:
+            show_company_popup(selected_symbols[0])
+
+        remove_symbols = st.multiselect(
+            "Chọn mã để xóa khỏi yêu thích",
+            favorites,
+            key="fav_remove_select",
+        )
+        if st.button("Xóa mã đã chọn", use_container_width=True, key="fav_remove_btn"):
+            if remove_symbols:
+                _localstorage_remove_favorites(remove_symbols)
+                st.toast("Đã xóa mã đã chọn.")
+                st.rerun()
+            else:
+                st.info("Vui lòng chọn ít nhất một mã để xóa.")
+
+
+    
+### Heat map thị trường ###
+

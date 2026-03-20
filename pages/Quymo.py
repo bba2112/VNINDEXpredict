@@ -1,9 +1,47 @@
 import pandas as pd
 import streamlit as st
 from vnstock import Fund
+import os
+from common import load_css, render_topbar
 
 
 st.set_page_config(page_title="Quỹ mở Việt Nam - Greatfut", layout="wide")
+load_css()
+
+# Topbar
+_ticker_default = (
+    "Tin nhanh: VNINDEX biến động mạnh trong phiên | VN30 giữ nhịp | "
+    "Thanh khoản cải thiện | Cập nhật từ nguồn API sẽ thay thế nội dung này"
+)
+TICKER_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ticker_text.txt")
+
+def load_ticker_text(default_text: str) -> str:
+    try:
+        if os.path.exists(TICKER_FILE):
+            with open(TICKER_FILE, "r", encoding="utf-8", errors="replace") as f:
+                text = f.read().strip()
+                if text:
+                    return text
+    except Exception:
+        pass
+    return default_text
+
+ticker_text = load_ticker_text(_ticker_default)
+logo_path = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "image",
+    "Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png",
+)
+render_topbar(
+    ticker_text=ticker_text,
+    ticker_text_en=(
+        "Breaking: VNINDEX volatile | VN30 steady | Liquidity improving | "
+        "API feed will replace this"
+    ),
+    logo_path=logo_path,
+    clock_timezone="Asia/Ho_Chi_Minh",
+    extra_class="topbar--quymo",
+)
 def _nav_button(label: str, page_path: str) -> None:
     if hasattr(st, "switch_page"):
         if st.button(label, use_container_width=True):

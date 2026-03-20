@@ -1,0 +1,187 @@
+﻿/* Shared Streamlit UI styles */
+
+/* Topbar + ticker */
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 10px;
+
+    background: #5091d1;
+    color: #265ad3;
+}
+.topbar__logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+.topbar__controls {
+    display: flex;
+    gap: 6px;
+    border-radius: 8px;
+}
+.topbar__btn {
+    padding-left: 5px;
+    border: 1px solid #cbd5f5;
+    /* background: #ffffff; */
+    /* color: #0f172a; */
+    border-radius: 999px;
+    padding: 10px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 2000ms ease, box-shadow 2000ms ease, filter 2000ms ease;
+}
+.topbar__btn.btn-white {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 10px 22px rgba(255, 255, 255, 0.25);
+}
+.news-ticker {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 8px 12px;
+    color: #f8fafc;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    border-radius: 10px;
+    background: #0f172a;
+}
+.news-ticker__track {
+    display: inline-block;
+    padding-left: 100%;
+    animation: news-ticker-scroll 20s linear infinite;
+}
+@keyframes news-ticker-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+.topbar__clock {
+    min-width: 96px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+.topbar--dashboard .topbar__clock {
+    font-weight: 1000;
+}
+.news-ticker__track[data-lang="en"] {
+    display: none;
+}
+
+/* Topbar theme */
+.topbar.theme-dark {
+    background: #1b2027;
+    border-radius: 10px;
+    color: #f8fafc;
+}
+.topbar.theme-dark .topbar__btn {
+    background: #0b1220;
+    color: #f8fafc;
+    border-color: #1e293b;
+}
+.topbar.theme-dark .news-ticker {
+    /* background: #111827; */
+    color: #e2e8f0;
+}
+
+/* Global theme */
+body.theme-dark {
+    background: #1b2027 !important;
+    color: #e5e7eb !important;
+}
+body.theme-dark .stApp {
+    background: #1b2027 !important;
+    color: #e5e7eb !important;
+}
+body.theme-dark h1,
+body.theme-dark h2,
+body.theme-dark h3,
+body.theme-dark h4,
+body.theme-dark h5,
+body.theme-dark h6,
+body.theme-dark p,
+body.theme-dark span,
+body.theme-dark label,
+body.theme-dark div {
+    color: #e5e7eb !important;
+}
+body.theme-light {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+body.theme-light .stApp {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+/* AI popover */
+@keyframes ai-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+@keyframes ai-pop-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(8px) scale(0.95);
+    }
+}
+
+div[data-testid="stPopover"] {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 999;
+}
+
+div[data-testid="stPopover"] button {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    padding: 0;
+    font-size: 24px;
+    border: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.20);
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+div[data-testid="stPopover"] button:hover {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+    filter: saturate(1.08);
+}
+
+/* Open state: apply pop-in when popover is visible */
+div[data-baseweb="popover"]:not([data-popper-reference-hidden="true"]):not([aria-hidden="true"]):not([hidden]) > div {
+    transform-origin: bottom right !important;
+    animation: ai-pop-in 2200ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+    border-radius: 10px !important;
+    box-shadow: 0 30px 40px rgba(15, 23, 42, 0.22) !important;
+}
+
+/* Close state: cover multiple hidden-state variants across BaseWeb/Streamlit versions */
+div[data-baseweb="popover"][data-popper-reference-hidden="true"] > div,
+div[data-baseweb="popover"][aria-hidden="true"] > div,
+div[data-baseweb="popover"][hidden] > div,
+div[data-baseweb="popover"][style*="visibility: hidden"] > div,
+div[data-baseweb="popover"][style*="opacity: 0"] > div {
+    animation: ai-pop-out 2200ms cubic-bezier(0.4, 0, 1, 1) both !important;
+    pointer-events: none !important;
+}
+
+/* Favorites sync field: keep hidden */
+div[data-testid="stTextArea"] textarea[aria-label="fav_store_sync"] {
+    display: none;
+}

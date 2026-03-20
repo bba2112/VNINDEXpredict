@@ -3,8 +3,61 @@ import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
 from vnstock.explorer.misc.gold_price import sjc_gold_price
+import os
+try:
+    from gemini_ai import GeminiAI
+except Exception:
+    GeminiAI = None
+from common import load_css, render_topbar
 
 st.set_page_config(page_title="Giá vàng hôm nay - Greatfut", layout="wide")
+load_css()
+
+### BAR ###
+# Auto-refresh page to pick up ticker file changes.
+st.components.v1.html(
+    "<script>setTimeout(() => window.location.reload(), 3600000);</script>",
+    height=0,
+)
+
+# Placeholder ticker text (used if no file-driven content yet)
+_ticker_default = (
+    "Tin nhanh: VNINDEX biến động mạnh trong phiên | VN30 giữ nhịp | "
+    "Thanh khoản cải thiện | Cập nhật từ nguồn API sẽ thay thế nội dung này"
+)
+
+TICKER_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ticker_text.txt")
+
+def load_ticker_text(default_text: str) -> str:
+    try:
+        if os.path.exists(TICKER_FILE):
+            with open(TICKER_FILE, "r", encoding="utf-8", errors="replace") as f:
+                text = f.read().strip()
+                if text:
+                    return text
+    except Exception:
+        pass
+    return default_text
+
+ticker_text = load_ticker_text(_ticker_default)
+
+logo_path = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "image",
+    "Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png",
+)
+render_topbar(
+    ticker_text=ticker_text,
+    ticker_text_en=(
+        "Breaking: VNINDEX volatile | VN30 steady | Liquidity improving | "
+        "API feed will replace this"
+    ),
+    logo_path=logo_path,
+    clock_timezone="Asia/Ho_Chi_Minh",
+    extra_class="topbar--gold",
+)
+
+### Giá vàng ###
 
 def _nav_button(label: str, page_path: str) -> None:
     if hasattr(st, "switch_page"):
@@ -80,6 +133,104 @@ try:
 except Exception as exc:
     st.error(f"Không tải được dữ liệu giá vàng: {exc}")
     st.stop()
+
+### GEMINI ###
+
+def get_gemini_api_key() -> str:
+    return os.getenv("GEMINI_API_KEY", "").strip()
+
+@st.cache_resource
+def get_gemini_client(api_key: str):
+    if GeminiAI is None or not api_key:
+        return None
+    return GeminiAI(api_key=api_key, gemini_model="gemini-2.5-flash")
+
+def build_gold_ai_context(df: pd.DataFrame) -> str:
+    if df.empty:
+        return "Khong co du lieu gia vang."
+
+    # Chuẩn hoá cột ngày
+    if "date" in df.columns:
+        dates = pd.to_datetime(df["date"], errors="coerce")
+    else:
+        dates = pd.Series([None] * len(df))
+
+    # Cột giá
+    buy = df.get("buy_price")
+    sell = df.get("sell_price")
+
+    def _to_float(series):
+        return pd.to_numeric(series, errors="coerce") if series is not None else None
+
+    buy = _to_float(buy)
+    sell = _to_float(sell)
+
+    first_buy = float(buy.dropna().iloc[0]) if buy is not None and buy.dropna().any() else None
+    last_buy = float(buy.dropna().iloc[-1]) if buy is not None and buy.dropna().any() else None
+    first_sell = float(sell.dropna().iloc[0]) if sell is not None and sell.dropna().any() else None
+    last_sell = float(sell.dropna().iloc[-1]) if sell is not None and sell.dropna().any() else None
+
+    start_dt = dates.min()
+    end_dt = dates.max()
+
+    def pct(a, b):
+        return ((b - a) / a * 100) if a and b else None
+
+    return (
+        f"Loai: Gia vang SJC\n"
+        f"Khoang thoi gian: {start_dt} den {end_dt}\n"
+        f"So diem du lieu: {len(df)}\n"
+        f"Gia mua dau ky: {first_buy}\n"
+        f"Gia mua cuoi ky: {last_buy}\n"
+        f"Bien dong mua: {pct(first_buy, last_buy)}%\n"
+        f"Gia ban dau ky: {first_sell}\n"
+        f"Gia ban cuoi ky: {last_sell}\n"
+        f"Bien dong ban: {pct(first_sell, last_sell)}%\n"
+    )
+
+api_key = get_gemini_api_key()
+with st.popover("💬", help="Trợ lí AI", use_container_width=False):
+    st.markdown("### Trợ lí AI")
+    user_question = st.text_area(
+        "Nhập câu hỏi",
+        value="",
+        height=100,
+        key="ai_user_question",
+    )
+
+    if st.button("Gửi", use_container_width=True, key="ai_submit_btn"):
+        if GeminiAI is None:
+            st.error("Không import được gemini_ai trong môi trường chạy Streamlit.")
+        elif not api_key:
+            st.error("Thiếu GEMINI_API_KEY. Hãy đặt trong biến môi trường hoặc st.secrets.")
+        elif not user_question.strip():
+            st.warning("Vui lòng nhập nội dung câu hỏi.")
+        else:
+            try:
+                client = get_gemini_client(api_key)
+                context = build_gold_ai_context(df)
+                prompt = (
+                    "Ban la tro li phan tich gia vang Viet Nam. "
+                    "Tra loi ngan gon theo muc: Xu huong, Moc quan trong, Rui ro, Goi y hanh dong.\n\n"
+                    f"Du lieu gia vang:\n{context}\n"
+                    f"Yeu cau nguoi dung: {user_question.strip()}"
+                )
+                with st.spinner("Đang phân tích..."):
+                    response = client.model.generate_content(prompt)
+                st.session_state["ai_answer_text"] = getattr(response, "text", "").strip() or "AI không trả về nội dung."
+            except Exception as exc:
+                err_text = str(exc)
+                if "reported as leaked" in err_text or "403" in err_text:
+                    st.error(
+                        "Gemini API key đã bị thu hồi hoặc không hợp lệ (403). "
+                        "Hãy tạo key mới và cập nhật GEMINI_API_KEY trong st.secrets hoặc biến môi trường."
+                    )
+                else:
+                    st.error(f"Lỗi gọi Gemini: {exc}")
+
+    if st.session_state.get("ai_answer_text"):
+        st.markdown("#### Kết quả AI")
+        st.markdown(st.session_state["ai_answer_text"])
 
 if df.empty:
     st.warning("Không có dữ liệu giá vàng hiện tại")
