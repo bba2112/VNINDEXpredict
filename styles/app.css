@@ -4,12 +4,9 @@
 .topbar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 3px;
     padding: 4px 6px;
     border-radius: 10px;
-
-    background: #5091d1;
-    color: #265ad3;
 }
 .topbar__logo {
     width: 60px;
@@ -45,7 +42,7 @@
     white-space: nowrap;
     padding: 8px 12px;
     color: #f8fafc;
-    font-weight: 800;
+    font-weight: 1000;
     letter-spacing: 0.2px;
     border-radius: 10px;
     background: #0f172a;
@@ -60,7 +57,7 @@
     100% { transform: translateX(-100%); }
 }
 .topbar__clock {
-    min-width: 96px;
+    min-width: 120px;
     font-weight: 800;
     letter-spacing: 0.5px;
 }

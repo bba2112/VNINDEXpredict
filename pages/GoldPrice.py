@@ -309,9 +309,8 @@ else:
         )
         st.altair_chart(chart, use_container_width=True)
 
-    st.caption("Dữ liệu 3 năm gần nhất, lấy mẫu mỗi 7 ngày")
 
-    with st.expander("Dữ liệu raw", expanded=False):
+    with st.expander("Dữ liệu giá vàng", expanded=False):
         st.dataframe(df, use_container_width=True)
 
     st.caption(f"Số dòng: {len(df):,}")

@@ -1,0 +1,39 @@
+{
+  "meta": {
+    "name": "VN Industries Mapping",
+    "updated": "2026-03-23",
+    "source": "manual_seed"
+  },
+  "industries": [
+    {
+      "id": "banking",
+      "name": "Ngân hàng",
+      "symbols": ["VCB", "BID", "CTG", "TCB", "VPB", "MBB", "ACB", "STB", "HDB"]
+    },
+    {
+      "id": "steel",
+      "name": "Thép",
+      "symbols": ["HPG", "HSG", "NKG", "SMC", "TLH"]
+    },
+    {
+      "id": "real_estate",
+      "name": "Bất động sản",
+      "symbols": ["VHM", "VIC", "NVL", "PDR", "KDH", "DIG"]
+    },
+    {
+      "id": "securities",
+      "name": "Chứng khoán",
+      "symbols": ["SSI", "VND", "HCM", "VCI", "VIX", "FTS"]
+    },
+    {
+      "id": "oil_gas",
+      "name": "Dầu khí",
+      "symbols": ["GAS", "PLX", "PVS", "PVD"]
+    },
+    {
+      "id": "retail",
+      "name": "Bán lẻ",
+      "symbols": ["MWG", "FRT", "DGW", "PNJ"]
+    }
+  ]
+}

@@ -951,6 +951,46 @@ def get_group_symbols(group_name: str):
     return Listing(source="VCI").symbols_by_group(group_name)
 
 @st.cache_data(ttl=3600)
+def get_industry_options() -> list[str]:
+    """Best-effort fetch of industry names from vnstock Listing."""
+    try:
+        listing = Listing(source="VCI")
+        if hasattr(listing, "industries"):
+            data = listing.industries()
+        elif hasattr(listing, "industry_classification"):
+            data = listing.industry_classification()
+        elif hasattr(listing, "icb"):
+            data = listing.icb()
+        else:
+            return []
+
+        if isinstance(data, pd.Series):
+            values = data.dropna().astype(str).tolist()
+        elif isinstance(data, pd.DataFrame):
+            name_cols = [
+                "icb_name2",
+                "industry_name",
+                "icb_name3",
+                "icb_name",
+                "name",
+                "industry",
+                "sector",
+            ]
+            pick_col = next((c for c in name_cols if c in data.columns), None)
+            if pick_col is None and len(data.columns) == 1:
+                pick_col = data.columns[0]
+            if pick_col is None:
+                return []
+            values = data[pick_col].dropna().astype(str).tolist()
+        elif isinstance(data, (list, tuple, set)):
+            values = [str(v) for v in data if str(v).strip()]
+        else:
+            return []
+
+        return sorted({v.strip() for v in values if v.strip()})
+    except Exception:
+        return []
+@st.cache_data(ttl=3600)
 def get_exchange_symbols(exchange_name: str):
     return Listing(source="VCI").symbols_by_exchange(exchange=exchange_name)
 
@@ -963,7 +1003,7 @@ def render_basket_list(target_group_symbol: str, table_key: str) -> None:
             "Tìm mã",
             key=f"fav_search_{table_key}",
             label_visibility="collapsed",
-            placeholder="Gõ để tìm mã..."
+            placeholder="Nhập để tìm mã..."
         )
         if search_q:
             q = search_q.strip().upper()
@@ -1123,7 +1163,4 @@ with tabs[2]:
             else:
                 st.info("Vui lòng chọn ít nhất một mã để xóa.")
 
-
-    
-### Heat map thị trường ###
 
