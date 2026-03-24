@@ -104,6 +104,12 @@ def render_topbar(
             const langBtn = document.getElementById("toggle-lang");
             const trackVi = document.querySelector('.news-ticker__track[data-lang="vi"]');
             const trackEn = document.querySelector('.news-ticker__track[data-lang="en"]');
+            const parentDoc = (window.parent && window.parent.document) ? window.parent.document : document;
+            const parentBody = parentDoc.body || document.body;
+            const storage = (window.parent && window.parent.localStorage) ? window.parent.localStorage : window.localStorage;
+            const THEME_KEY = "topbar_theme";
+            const LANG_KEY = "topbar_lang";
+
             function tick() {{
                 const now = new Date();
                 const fmt = new Intl.DateTimeFormat("en-GB", {{
@@ -113,7 +119,9 @@ def render_topbar(
                     second: "2-digit",
                     hour12: false
                 }});
-                clockEl.textContent = fmt.format(now);
+                if (clockEl) {{
+                    clockEl.textContent = fmt.format(now);
+                }}
             }}
             if (clockEl) {{
                 tick();
@@ -121,27 +129,56 @@ def render_topbar(
             }}
 
             function applyTheme(isDark) {{
-                if (!topbar) return;
-                topbar.classList.toggle("theme-dark", isDark);
-                document.body.classList.toggle("theme-dark", isDark);
-                document.body.classList.toggle("theme-light", !isDark);
+                if (topbar) {{
+                    topbar.classList.toggle("theme-dark", isDark);
+                    topbar.classList.toggle("theme-light", !isDark);
+                }}
+                if (parentBody) {{
+                    parentBody.classList.toggle("theme-dark", isDark);
+                    parentBody.classList.toggle("theme-light", !isDark);
+                }}
                 if (themeBtn) {{
                     themeBtn.textContent = isDark ? "Dark" : "Light";
                 }}
+                try {{
+                    storage.setItem(THEME_KEY, isDark ? "dark" : "light");
+                }} catch (e) {{}}
             }}
+
+            function applyLang(lang) {{
+                if (!trackVi || !trackEn) return;
+                const useVi = (lang || "vi").toLowerCase() === "vi";
+                trackVi.style.display = useVi ? "inline-block" : "none";
+                trackEn.style.display = useVi ? "none" : "inline-block";
+                if (langBtn) {{
+                    langBtn.textContent = useVi ? "VI" : "EN";
+                }}
+                try {{
+                    storage.setItem(LANG_KEY, useVi ? "vi" : "en");
+                }} catch (e) {{}}
+            }}
+
             if (themeBtn) {{
-                applyTheme(false);
+                let storedTheme = "light";
+                try {{
+                    storedTheme = storage.getItem(THEME_KEY) || "light";
+                }} catch (e) {{}}
+                applyTheme(storedTheme === "dark");
                 themeBtn.addEventListener("click", () => {{
-                    const isDark = !document.body.classList.contains("theme-dark");
+                    const isDark = !parentBody.classList.contains("theme-dark");
                     applyTheme(isDark);
                 }});
             }}
+
             if (langBtn && trackVi && trackEn) {{
+                let storedLang = "vi";
+                try {{
+                    storedLang = storage.getItem(LANG_KEY) || "vi";
+                }} catch (e) {{}}
+                applyLang(storedLang);
                 langBtn.addEventListener("click", () => {{
-                    const viOn = trackVi.style.display !== "none";
-                    trackVi.style.display = viOn ? "none" : "inline-block";
-                    trackEn.style.display = viOn ? "inline-block" : "none";
-                    langBtn.textContent = viOn ? "EN" : "VI";
+                    const isVi = trackVi.style.display !== "none";
+                    applyLang(isVi ? "en" : "vi");
                 }});
             }}
 
@@ -154,7 +191,6 @@ def render_topbar(
                 }});
             }});
         }})();
-        
         </script>
         """,
         height=80,

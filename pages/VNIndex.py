@@ -59,102 +59,19 @@ def _nav_button(label: str, page_path: str) -> None:
         return
     st.info("Streamlit không hỗ trợ chuyển trang trong phiên bản này.")
 
-a1, a2, a3 = st.columns(3)
+a1, a2, a3,a4 = st.columns(4)
 with a1:
     _nav_button("Bảng giá thị trường", "./dashboard.py")
 with a2:
-    _nav_button("Giá vàng", "pages/GoldPrice.py")
+    _nav_button("Toàn cảnh thị trường", "pages/Toancanh_thitruong.py")
 with a3:
     _nav_button("Danh sách các quỹ", "pages/Quymo.py")
+with a4:
+    _nav_button("Giá vàng", "pages/GoldPrice.py")
 
 st.title("Greatfut - VNIndex & Stock Profile")
 
-# st.markdown(
-#     """
-#     <style>
-#     .theme-picker {
-#         position: fixed;
-#         top: 10px;
-#         left: 10px;
-#         z-index: 1000;
-#         width: 120px;
-#     }
-#     .theme-picker label {
-#         display: none !important;
-#     }
-#     .theme-picker [data-baseweb="select"] > div {
-#         min-height: 32px;
-#         height: 32px;
-#         border-radius: 4px;
-#         padding-left: 6px;
-#         padding-right: 6px;
-#         font-size: 12px;
-#     }
-#     .theme-picker [data-baseweb="select"] svg {
-#         width: 14px;
-#         height: 14px;
-#     }
-#     </style>
-#     """,
-#     unsafe_allow_html=True,
-# )
 
-# st.markdown('<div class="theme-picker">', unsafe_allow_html=True)
-# theme_mode = st.selectbox(
-#     "Tone nền",
-#     ["Sáng", "Tối"],
-#     index=0,
-#     label_visibility="collapsed",
-#     key="theme_mode_select",
-# )
-# st.markdown("</div>", unsafe_allow_html=True)
-# is_dark_theme = theme_mode == "Tối"
-# plotly_template = "plotly_dark" if is_dark_theme else "plotly_white"
-
-# if is_dark_theme:
-#     plt.style.use("dark_background")
-#     st.markdown(
-#         """
-#         <style>
-#         [data-testid="stAppViewContainer"] {
-#             background-color: #0f1117;
-#             color: #f3f4f6;
-#         }
-#         [data-testid="stSidebar"] {
-#             background-color: #111827;
-#         }
-#         [data-testid="stSidebar"] * {
-#             color: #f3f4f6 !important;
-#         }
-#         [data-testid="stHeader"] {
-#             background: transparent;
-#         }
-#         </style>
-#         """,
-#         unsafe_allow_html=True,
-#     )
-# else:
-#     plt.style.use("default")
-#     st.markdown(
-#         """
-#         <style>
-#         [data-testid="stAppViewContainer"] {
-#             background-color: #ffffff;
-#             color: #111827;
-#         }
-#         [data-testid="stSidebar"] {
-#             background-color: #f9fafb;
-#         }
-#         [data-testid="stSidebar"] * {
-#             color: #111827 !important;
-#         }
-#         [data-testid="stHeader"] {
-#             background: transparent;
-#         }
-#         </style>
-#         """,
-#         unsafe_allow_html=True,
-#     )
 
 
 TABLE_NAME = "stocks"

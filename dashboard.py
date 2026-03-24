@@ -280,13 +280,15 @@ def _get_favorites_from_localstorage() -> list[str]:
     return sorted({str(s).strip().upper() for s in data if str(s).strip()})
 
 
-a1, a2, a3 = st.columns(3)
+a1, a2, a3, a4 = st.columns(4)
 with a1:
-    _nav_button("Giá vàng", "pages/GoldPrice.py")
+    _nav_button("Toàn cảnh thị trường", "pages/Toancanh_thitruong.py")
 with a2:
     _nav_button("Danh sách các quỹ", "pages/Quymo.py")
 with a3:
     _nav_button("VNData", "pages/VNIndex.py")
+with a4:
+    _nav_button("Giá vàng", "pages/GoldPrice.py")
 
 
 c1, c2 = st.columns([1, 1])
@@ -307,6 +309,8 @@ if len(index_options) != len(quote_symbols) or len(index_options) != len(group_s
 selected_pos = index_options.index(selected_label)
 quote_symbol = quote_symbols[selected_pos]
 group_symbol = group_symbols[selected_pos]
+
+###GEMINI###
 
 def get_gemini_api_key() -> str:
     env_key = os.getenv("GEMINI_API_KEY", "").strip()

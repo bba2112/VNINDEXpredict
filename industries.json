@@ -8,7 +8,8 @@
     {
       "id": "banking",
       "name": "Ngân hàng",
-      "symbols": ["VCB", "BID", "CTG", "TCB", "VPB", "MBB", "ACB", "STB", "HDB"]
+      "symbols": ["VCB", "BID", "CTG", "MBB", "TCB", "VPB", "ACB", "HDB", "STB", "SHB",
+                  "VIB", "LPB"]
     },
     {
       "id": "steel",
@@ -18,17 +19,20 @@
     {
       "id": "real_estate",
       "name": "Bất động sản",
-      "symbols": ["VHM", "VIC", "NVL", "PDR", "KDH", "DIG"]
+      "symbols": ["VIC", "VHM", "VRE", "NVL", "KDH", "NLG", "PDR", "DIG", "DXG", "CEO",
+                  "HDC"]
     },
     {
       "id": "securities",
       "name": "Chứng khoán",
-      "symbols": ["SSI", "VND", "HCM", "VCI", "VIX", "FTS"]
+      "symbols": ["SSI", "VND", "VCI", "HCM", "SHS", "MBS", "FTS", "BSI", "CTS", "VIX"
+                   ]
     },
     {
       "id": "oil_gas",
       "name": "Dầu khí",
-      "symbols": ["GAS", "PLX", "PVS", "PVD"]
+      "symbols": ["GAS", "PVD", "PVS", "PLX", "BSR", "OIL", "PVT", "PVC"
+                 ]
     },
     {
       "id": "retail",

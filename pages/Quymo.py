@@ -52,13 +52,15 @@ def _nav_button(label: str, page_path: str) -> None:
         return
     st.info("Streamlit không hỗ trợ chuyển trang trong phiên bản này.")
 
-a1, a2, a3 = st.columns(3)
+a1, a2, a3,a4 = st.columns(4)
 with a1:
     _nav_button("Bảng giá thị trường", "./dashboard.py")
 with a2:
     _nav_button("Giá vàng", "pages/GoldPrice.py")
 with a3:
     _nav_button("VNData", "pages/VNIndex.py")
+with a4:
+    _nav_button("Toàn cảnh thị trường", "pages/Toancanh_thitruong.py")
 st.title("Danh sách quỹ mở")
 
 
