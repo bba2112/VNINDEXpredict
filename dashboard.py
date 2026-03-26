@@ -30,6 +30,7 @@ from common import load_css, render_topbar
 
 st.set_page_config(page_title="Dữ liệu - Greatfut iBoard", layout="wide")
 load_css()
+REFRESH_MAIN_CHART_SECONDS = 60
 
 
 ### BAR ###
@@ -734,33 +735,7 @@ def load_index_history(label: str, start_dt, end_dt):
 
     return data, chart_start_ts, chart_end_ts, ref_price
 
-# --- Main chart data for selected index (used by AI context) ---
-try:
-    df_main, chart_start_ts, chart_end_ts, ref_price_9h = load_index_history(
-        selected_label, start_date, end_date
-    )
-except Exception as exc:
-    st.error(f"Không thể tải dữ liệu chart {selected_label} (symbol={quote_symbol}): {exc}")
-    st.stop()
-
-if df_main.empty:
-    st.warning(f"Không có dữ liệu chart cho {selected_label} (symbol={quote_symbol})")
-    st.stop()
-
-index_data = {}
-for label in index_options:
-    try:
-        if label == selected_label:
-            index_data[label] = (df_main, ref_price_9h)
-        else:
-            df_tmp, _, _, ref_tmp = load_index_history(label, start_date, end_date)
-            index_data[label] = (df_tmp, ref_tmp)
-    except Exception as exc:
-        st.error(f"Không thể tải dữ liệu chart {label}: {exc}")
-        st.stop()
-
-
-def build_index_dropdown_chart(default_label: str):
+def build_index_dropdown_chart(default_label: str, index_data: dict):
     fig = go.Figure()
     shapes_by_index = {}
     annotations_by_index = {}
@@ -877,31 +852,76 @@ def build_index_dropdown_chart(default_label: str):
     return fig
 
 
-chart1, chart2, chart3, chart4 = st.columns([5, 5, 5, 5], gap="small")
-with chart1:
-    st.plotly_chart(
-        build_index_dropdown_chart(selected_label),
-        use_container_width=True,
-        key="chart_1",
-    )
-with chart2:
-    st.plotly_chart(
-        build_index_dropdown_chart(selected_label),
-        use_container_width=True,
-        key="chart_2",
-    )
-with chart3:
-    st.plotly_chart(
-        build_index_dropdown_chart(selected_label),
-        use_container_width=True,
-        key="chart_3",
-    )
-with chart4:
-    st.plotly_chart(
-        build_index_dropdown_chart(selected_label),
-        use_container_width=True,
-        key="chart_4",
-    )
+def render_main_charts() -> None:
+    # --- Main chart data for selected index (used by AI context) ---
+    try:
+        df_main, chart_start_ts, chart_end_ts, ref_price_9h = load_index_history(
+            selected_label, start_date, end_date
+        )
+    except Exception as exc:
+        st.error(f"Không thể tải dữ liệu chart {selected_label} (symbol={quote_symbol}): {exc}")
+        st.session_state["main_chart_df"] = pd.DataFrame()
+        return
+
+    if df_main.empty:
+        st.warning(f"Không có dữ liệu chart cho {selected_label} (symbol={quote_symbol})")
+        st.session_state["main_chart_df"] = pd.DataFrame()
+        return
+
+    index_data = {}
+    for label in index_options:
+        try:
+            if label == selected_label:
+                index_data[label] = (df_main, ref_price_9h)
+            else:
+                df_tmp, _, _, ref_tmp = load_index_history(label, start_date, end_date)
+                index_data[label] = (df_tmp, ref_tmp)
+        except Exception as exc:
+            st.error(f"Không thể tải dữ liệu chart {label}: {exc}")
+            return
+
+    st.session_state["main_chart_df"] = df_main
+    st.session_state["main_chart_label"] = selected_label
+    st.session_state["main_chart_symbol"] = quote_symbol
+    st.session_state["main_chart_start"] = start_date
+    st.session_state["main_chart_end"] = end_date
+
+    chart1, chart2, chart3, chart4 = st.columns([5, 5, 5, 5], gap="small")
+    with chart1:
+        st.plotly_chart(
+            build_index_dropdown_chart(selected_label, index_data),
+            use_container_width=True,
+            key="chart_1",
+        )
+    with chart2:
+        st.plotly_chart(
+            build_index_dropdown_chart(selected_label, index_data),
+            use_container_width=True,
+            key="chart_2",
+        )
+    with chart3:
+        st.plotly_chart(
+            build_index_dropdown_chart(selected_label, index_data),
+            use_container_width=True,
+            key="chart_3",
+        )
+    with chart4:
+        st.plotly_chart(
+            build_index_dropdown_chart(selected_label, index_data),
+            use_container_width=True,
+            key="chart_4",
+        )
+
+
+if hasattr(st, "fragment"):
+    @st.fragment(run_every=REFRESH_MAIN_CHART_SECONDS)
+    def _main_chart_fragment() -> None:
+        render_main_charts()
+
+    _main_chart_fragment()
+else:
+    st.info("Phiên bản Streamlit hiện tại không hỗ trợ fragment, nên chart sẽ không tự refresh.")
+    render_main_charts()
 
 
 api_key = get_gemini_api_key()
@@ -924,6 +944,10 @@ with st.popover("💬", help="Trợ lí AI", use_container_width=False):
         else:
             try:
                 client = get_gemini_client(api_key)
+                df_main = st.session_state.get("main_chart_df", pd.DataFrame())
+                if df_main is None or df_main.empty:
+                    st.warning("Chưa có dữ liệu chart để phân tích.")
+                    st.stop()
                 context = build_ai_context(df_main, selected_label, quote_symbol, start_date, end_date)
                 prompt = (
                     "Bạn là trợ lí phân tích chứng khoán Việt Nam. "
@@ -1070,10 +1094,10 @@ def render_basket_list(target_group_symbol: str, table_key: str) -> None:
         show_company_popup(selected_symbol)
 
 
-### CỐ PHIẾU YÊU THÍCH ###
+### DANH SÁCH CỔ PHIẾU ###
 
 
-tabs = st.tabs(["VNIndex", "...", "Cổ phiếu yêu thích"])
+tabs = st.tabs(["VNIndex", "Danh sách các rổ cổ phiếu","Cổ phiếu yêu thích"])
 with tabs[0]:
     st.markdown("---")
     render_basket_list(group_symbol, "basket_table_select_current")

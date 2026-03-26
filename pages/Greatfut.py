@@ -2,37 +2,14 @@ import pyodbc
 import streamlit as st
 
 
-st.set_page_config(page_title="Greatfut - Đăng nhập", layout="centered")
-
 
 def get_conn():
     return pyodbc.connect(
         "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=DESKTOP-S5JDT28\\SQLEXPRESS;"
+        "SERVER=DESKTOP-S5JDT28\SQLEXPRESS;"
         "DATABASE=StockDB;"
-        "Trusted_Connection=yes;"
         "TrustServerCertificate=yes;"
     )
-
-
-def register_user(username, password, mail=None, sdt=None, birthdate=None, addr=None):
-    with get_conn() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            "EXEC dbo.sp_register_user ?, ?, ?, ?, ?, ?",
-            (username, password, mail, sdt, birthdate, addr),
-        )
-        conn.commit()
-
-
-def login_user(username, password) -> bool:
-    with get_conn() as conn:
-        cur = conn.cursor()
-        cur.execute("EXEC dbo.sp_login_user ?, ?", (username, password))
-        row = cur.fetchone()
-        return bool(row[0]) if row else False
-
-
 def login_ui():
     st.subheader("Đăng nhập")
     u = st.text_input("Username")
@@ -45,6 +22,21 @@ def login_ui():
         else:
             st.error("Sai tài khoản hoặc mật khẩu")
 
+def register_user(username, password, mail=None, sdt=None, birthdate=None, addr=None):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "EXEC dbo.sp_register_user ?, ?, ?, ?, ?, ?",
+            (username, password, mail, sdt, birthdate, addr),
+        )
+        conn.commit()
+
+def login_user(username, password) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("EXEC dbo.sp_login_user ?, ?", (username, password))
+        row = cur.fetchone()
+        return bool(row[0]) if row else False
 
 def register_ui():
     st.subheader("Đăng ký")
@@ -58,7 +50,7 @@ def register_ui():
 
     if st.button("Đăng ký"):
         if not u or not p:
-            st.warning("Vui lòng nhập đủ username và mật khẩu.")
+            st.warning("Vui lòng nhập đầy đủ username và mật khẩu.")
             return
         if p != c:
             st.warning("Mật khẩu không khớp.")
@@ -68,7 +60,6 @@ def register_ui():
             st.success("Đăng ký thành công, vui lòng đăng nhập.")
         except Exception as e:
             st.error(f"Lỗi đăng ký: {e}")
-
 
 def auth_gate():
     if st.session_state.get("user"):
@@ -84,6 +75,3 @@ def auth_gate():
         with tab2:
             register_ui()
         return False
-
-
-auth_gate()

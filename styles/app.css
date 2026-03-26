@@ -96,36 +96,7 @@ body.theme-dark .topbar__btn {
     color: #ffffff;
 }
 
-/* Global theme */
-body.theme-dark {
-    background: #1b2027 !important;
-    color: #e5e7eb !important;
-}
-body.theme-dark .stApp {
-    background: #1b2027 !important;
-    color: #e5e7eb !important;
-}
-body.theme-dark h1,
-body.theme-dark h2,
-body.theme-dark h3,
-body.theme-dark h4,
-body.theme-dark h5,
-body.theme-dark h6,
-body.theme-dark p,
-body.theme-dark span,
-body.theme-dark label,
-body.theme-dark div {
-    color: #e5e7eb !important;
-}
-body.theme-light {
-    background: #ffffff !important;
-    color: #0f172a !important;
-}
-body.theme-light .stApp {
-    background: #ffffff !important;
-    color: #0f172a !important;
-}
-
+    
 /* AI popover */
 @keyframes ai-pop-in {
     from {

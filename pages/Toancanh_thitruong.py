@@ -40,15 +40,10 @@ st.set_page_config(page_title="Toàn cảnh thị trường", layout="wide")
 
 ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 INDUSTRY_FILE = os.path.join(ROOT_DIR, "industries.json")
-REFRESH_SECONDS = 600
+REFRESH_SECONDS = 60
 load_css()
 
 ### BAR ###
-# Auto-refresh page to pick up ticker file changes.
-st.components.v1.html(
-    "<script>setTimeout(() => window.location.reload(), 3600000);</script>",
-    height=0,
-)
 
 # Placeholder ticker text (used if no file-driven content yet)
 _ticker_default = (
@@ -283,7 +278,7 @@ with right:
     st.subheader("Thị trường hôm nay")
     source = st.selectbox("Nguồn dữ liệu", ["VCI", "TCBS", "KBS"], index=0)
     max_per_industry = st.slider("Giới hạn số lượng mã mỗi ngành", 5, 50, 15, step=1)
-    st.caption("Tự động cập nhật dữ liệu mỗi 60 giây (chuyển đổi heatmap).")
+    st.caption(f"Tự động cập nhật dữ liệu mỗi {REFRESH_SECONDS} giây (chỉ refresh heatmap).")
 
 
 with st.popover("💬", help="Trợ lí AI", use_container_width=False):
@@ -412,4 +407,5 @@ with left:
 
         _heatmap_fragment()
     else:
+        st.info("Phiên bản Streamlit hiện tại không hỗ trợ fragment, nên heatmap sẽ không tự refresh.")
         render_heatmap()
