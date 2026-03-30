@@ -1,12 +1,26 @@
-import pandas as pd
+﻿import pandas as pd
 import streamlit as st
 from vnstock import Fund
 import os
 from common import load_css, render_topbar
-
+import os
+try:
+    from gemini_ai import GeminiAI
+except Exception:
+    GeminiAI = None
 
 st.set_page_config(page_title="Quỹ mở Việt Nam - Greatfut", layout="wide")
 load_css()
+
+### Đóng SIDEBAR ### 
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Topbar
 _ticker_default = (
@@ -54,7 +68,7 @@ def _nav_button(label: str, page_path: str) -> None:
 
 a1, a2, a3,a4 = st.columns(4)
 with a1:
-    _nav_button("Bảng giá thị trường", "./dashboard.py")
+    _nav_button("Bảng giá thị trường", "pages/dashboard.py")
 with a2:
     _nav_button("Giá vàng", "pages/GoldPrice.py")
 with a3:
@@ -201,3 +215,141 @@ with st.expander("Xem dữ liệu bảng", expanded=False):
 
 fund = Fund()
 fund.details.industry_holding('BMFF')
+
+### GEMINI AI ###
+
+def get_gemini_api_key() -> str:
+    env_key = os.getenv("GEMINI_API_KEY", "").strip()
+    secret_key = ""
+    try:
+        secret_key = str(st.secrets.get("GEMINI_API_KEY", "")).strip()
+    except Exception:
+        secret_key = ""
+    return env_key or secret_key
+
+@st.cache_resource
+def get_gemini_client(api_key: str):
+    if GeminiAI is None or not api_key:
+        return None
+    return GeminiAI(api_key=api_key, gemini_model="gemini-2.5-flash")
+
+def build_fund_context(df: pd.DataFrame) -> str:
+    if df is None or df.empty:
+        return "Không có dữ liệu quỹ để tổng hợp."
+
+    df = df.copy()
+    for col in [
+        "nav",
+        "nav_change_1m",
+        "nav_change_12m",
+        "nav_change_36m",
+        "nav_change_36m_annualized",
+        "nav_change_inception",
+        "nav_change_previous",
+    ]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    total = len(df)
+    type_counts = None
+    if "fund_type" in df.columns:
+        type_counts = (
+            df["fund_type"]
+            .fillna("Khác")
+            .astype(str)
+            .value_counts()
+            .head(5)
+            .to_dict()
+        )
+
+    def _top(df_in: pd.DataFrame, col: str, n: int, ascending: bool) -> str:
+        if col not in df_in.columns:
+            return ""
+        tmp = df_in.dropna(subset=[col])
+        if tmp.empty:
+            return ""
+        tmp = tmp.sort_values(col, ascending=ascending).head(n)
+        lines = []
+        for _, row in tmp.iterrows():
+            sym = row.get("short_name", "") or row.get("fund_code", "")
+            val = row.get(col, None)
+            if val is None or pd.isna(val):
+                continue
+            if "nav_change" in col:
+                lines.append(f"{sym}: {val:.2f}%")
+            else:
+                lines.append(f"{sym}: {val:,.2f}")
+        return ", ".join(lines)
+
+    top_nav = _top(df, "nav", 5, ascending=False)
+    best_12m = _top(df, "nav_change_12m", 5, ascending=False)
+    worst_12m = _top(df, "nav_change_12m", 5, ascending=True)
+
+    type_summary = ""
+    if type_counts:
+        type_summary = "Phân bổ loại quỹ (top 5): " + ", ".join(
+            [f"{k}: {v}" for k, v in type_counts.items()]
+        )
+
+    return (
+        f"Tổng số quỹ: {total}\n"
+        + (type_summary + "\n" if type_summary else "")
+        + f"Top NAV: {top_nav or 'N/A'}\n"
+        + f"Top hiệu suất 12M: {best_12m or 'N/A'}\n"
+        + f"Bottom hiệu suất 12M: {worst_12m or 'N/A'}"
+    )
+
+
+with st.popover("💬", help="Trợ lí AI", use_container_width=False):
+    st.markdown("### Trợ lí AI")
+    user_question = st.text_area(
+        "Nhập câu hỏi",
+        value="",
+        height=100,
+        key="quymo_ai_user_question",
+    )
+
+    if st.button("Gửi", use_container_width=True, key="quymo_ai_submit_btn"):
+        api_key = get_gemini_api_key()
+        if GeminiAI is None:
+            st.error("Không import được gemini_ai trong môi trường chạy Streamlit.")
+        elif not api_key:
+            st.error("Thiếu GEMINI_API_KEY. Hãy đặt trong biến môi trường hoặc st.secrets.")
+        elif not user_question.strip():
+            st.warning("Vui lòng nhập nội dung câu hỏi.")
+        else:
+            try:
+                context = build_fund_context(filtered_df)
+
+                client = get_gemini_client(api_key)
+                if client is None:
+                    st.error("Không khởi tạo được Gemini client.")
+                else:
+                    prompt = (
+                        "Bạn là trợ lí phân tích quỹ đầu tư tại Việt Nam. "
+                        "Trả lời ngắn gọn theo mục: Tổng quan, Điểm nổi bật, Rủi ro, Gợi ý hành động.\n\n"
+                        f"Dữ liệu quỹ (tổng hợp):\n{context}\n"
+                        f"Yêu cầu người dùng: {user_question.strip()}"
+                    )
+                    with st.spinner("Đang phân tích..."):
+                        response = client.model.generate_content(prompt)
+                    st.session_state["ai_answer_text"] = (
+                        getattr(response, "text", "").strip() or "AI không trả về nội dung."
+                    )
+            except Exception as exc:
+                err_text = str(exc)
+                if "reported as leaked" in err_text or "403" in err_text:
+                    st.error(
+                        "Gemini API key đã bị thu hồi hoặc không hợp lệ (403). "
+                        "Hãy tạo key mới và cập nhật GEMINI_API_KEY trong st.secrets hoặc biến môi trường."
+                    )
+                else:
+                    st.error(f"Lỗi gọi Gemini: {exc}")
+
+    if st.session_state.get("ai_answer_text"):
+        st.markdown("#### Kết quả AI")
+        st.markdown(st.session_state["ai_answer_text"])
+
+if st.button("Đăng xuất"):
+    st.session_state.pop("user", None)
+    st.switch_page("C:\\Users\\kenda\\Desktop\\New folder (2)\\Greatfut.py")

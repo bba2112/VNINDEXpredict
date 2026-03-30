@@ -32,21 +32,64 @@ st.set_page_config(page_title="Dữ liệu - Greatfut iBoard", layout="wide")
 load_css()
 REFRESH_MAIN_CHART_SECONDS = 60
 
-
-### BAR ###
-# Auto-refresh page to pick up ticker file changes.
-st.components.v1.html(
-    "<script>setTimeout(() => window.location.reload(), 3600000);</script>",
-    height=0,
+### Đóng SIDEBAR ### 
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-# Placeholder ticker text (used if no file-driven content yet)
+# ### BAR ###
+# # Auto-refresh page to pick up ticker file changes.
+# st.components.v1.html(
+#     "<script>setTimeout(() => window.location.reload(), 3600000);</script>",
+#     height=0,
+# )
+
+# # Placeholder ticker text (used if no file-driven content yet)
+# _ticker_default = (
+#     "Tin nhanh: VNINDEX biến động mạnh trong phiên | VN30 giữ nhịp | "
+#     "Thanh khoản cải thiện | Cập nhật từ nguồn API sẽ thay thế nội dung này"
+# )
+
+# TICKER_FILE = os.path.join(os.path.dirname(__file__), "ticker_text.txt")
+
+# def load_ticker_text(default_text: str) -> str:
+#     try:
+#         if os.path.exists(TICKER_FILE):
+#             with open(TICKER_FILE, "r", encoding="utf-8", errors="replace") as f:
+#                 text = f.read().strip()
+#                 if text:
+#                     return text
+#     except Exception:
+#         pass
+#     return default_text
+
+# ticker_text = load_ticker_text(_ticker_default)
+
+# logo_path = os.path.join(
+#     os.path.dirname(__file__),
+#     "image",
+#     "Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png",
+# )
+# render_topbar(
+#     ticker_text=ticker_text,
+#     ticker_text_en=(
+#         "Breaking: VNINDEX volatile | VN30 steady | Liquidity improving | "
+#         "API feed will replace this"
+#     ),
+#     logo_path=logo_path,
+#     clock_timezone="Asia/Ho_Chi_Minh",
+#     extra_class="topbar--dashboard",
+# )
 _ticker_default = (
     "Tin nhanh: VNINDEX biến động mạnh trong phiên | VN30 giữ nhịp | "
     "Thanh khoản cải thiện | Cập nhật từ nguồn API sẽ thay thế nội dung này"
 )
-
-TICKER_FILE = os.path.join(os.path.dirname(__file__), "ticker_text.txt")
+TICKER_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ticker_text.txt")
 
 def load_ticker_text(default_text: str) -> str:
     try:
@@ -60,9 +103,8 @@ def load_ticker_text(default_text: str) -> str:
     return default_text
 
 ticker_text = load_ticker_text(_ticker_default)
-
 logo_path = os.path.join(
-    os.path.dirname(__file__),
+    os.path.dirname(os.path.dirname(__file__)),
     "image",
     "Gemini_Generated_Image_uvz9l1uvz9l1uvz9.png",
 )
@@ -74,9 +116,8 @@ render_topbar(
     ),
     logo_path=logo_path,
     clock_timezone="Asia/Ho_Chi_Minh",
-    extra_class="topbar--dashboard",
+    extra_class="topbar--vnindex",
 )
-
 
 def _nav_button(label: str, page_path: str) -> None:
     if hasattr(st, "switch_page"):
@@ -692,7 +733,8 @@ def load_index_history(label: str, start_dt, end_dt):
 
     raw = None
     fetch_errors = []
-    for src in ("VCI", "KBS"):
+    # KBS phù hợp môi trường cloud (VCI có thể bị chặn IP).
+    for src in ("KBS", "VCI"):
         try:
             quote = Quote(symbol=quote_symbol_local, source=src)
             raw = quote.history(
@@ -704,7 +746,7 @@ def load_index_history(label: str, start_dt, end_dt):
                 raw = quote.history(
                     start=chart_start_ts.strftime("%Y-%m-%d %H:%M:%S"),
                     end=chart_end_ts.strftime("%Y-%m-%d %H:%M:%S"),
-                    interval="1d",
+                    interval="1D",
                 )
             if raw is None or raw.empty:
                 fetch_errors.append(f"{src}: history rỗng")
@@ -1191,4 +1233,7 @@ with tabs[2]:
             else:
                 st.info("Vui lòng chọn ít nhất một mã để xóa.")
 
+if st.button("Đăng xuất"):
+            st.session_state.pop("user", None)
+            st.switch_page("C:\\Users\\kenda\\Desktop\\New folder (2)\\Greatfut.py")
 

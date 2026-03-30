@@ -21,6 +21,16 @@ load_css()
 day = timedelta(days=0)
 cr = vcb_exchange_rate(date = today_str())
 
+### Đóng SIDEBAR ### 
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 ### BAR ###
 # Auto-refresh page to pick up ticker file changes.
 st.components.v1.html(
@@ -79,7 +89,7 @@ def _nav_button(label: str, page_path: str) -> None:
 
 a1, a2, a3,a4 = st.columns(4)
 with a1:
-    _nav_button("Bảng giá thị trường", "./dashboard.py")
+    _nav_button("Bảng giá thị trường", "pages/dashboard.py")
 with a2:
     _nav_button("Danh sách các quỹ", "pages/Quymo.py")
 with a3:
@@ -349,3 +359,6 @@ with st.form("Chuyển đổi tiền tệ"):
         else:
             st.error("Không tìm thấy tỷ giá cho loại ngoại tệ đã chọn.")
 
+if st.button("Đăng xuất"):
+            st.session_state.pop("user", None)
+            st.switch_page("C:\\Users\\kenda\\Desktop\\New folder (2)\\Greatfut.py")

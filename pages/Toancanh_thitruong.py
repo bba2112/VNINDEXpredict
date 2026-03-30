@@ -43,6 +43,16 @@ INDUSTRY_FILE = os.path.join(ROOT_DIR, "industries.json")
 REFRESH_SECONDS = 60
 load_css()
 
+### Đóng SIDEBAR ### 
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 ### BAR ###
 
 # Placeholder ticker text (used if no file-driven content yet)
@@ -95,7 +105,7 @@ def _nav_button(label: str, page_path: str) -> None:
 
 a1, a2, a3, a4 = st.columns(4)
 with a1:
-    _nav_button("Bảng giá thị trường", "./dashboard.py")
+    _nav_button("Bảng giá thị trường", "pages/dashboard.py")
 with a2:
     _nav_button("Danh sách các quỹ", "pages/Quymo.py")
 with a3:
@@ -409,3 +419,6 @@ with left:
     else:
         st.info("Phiên bản Streamlit hiện tại không hỗ trợ fragment, nên heatmap sẽ không tự refresh.")
         render_heatmap()
+if st.button("Đăng xuất"):
+            st.session_state.pop("user", None)
+            st.switch_page("C:\\Users\\kenda\\Desktop\\New folder (2)\\Greatfut.py")

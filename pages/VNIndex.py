@@ -14,6 +14,16 @@ from common import load_css, render_topbar
 st.set_page_config(page_title="Greatfut - VNIndex & Stock Profile")
 load_css()
 
+### Đóng SIDEBAR ### 
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] { display: none; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Topbar
 _ticker_default = (
     "Tin nhanh: VNINDEX biến động mạnh trong phiên | VN30 giữ nhịp | "
@@ -61,7 +71,7 @@ def _nav_button(label: str, page_path: str) -> None:
 
 a1, a2, a3,a4 = st.columns(4)
 with a1:
-    _nav_button("Bảng giá thị trường", "./dashboard.py")
+    _nav_button("Bảng giá thị trường", "pages/dashboard.py")
 with a2:
     _nav_button("Toàn cảnh thị trường", "pages/Toancanh_thitruong.py")
 with a3:
@@ -426,5 +436,8 @@ try:
     st.pyplot(plt.gcf(), clear_figure=True)
 except Exception as exc:
     st.info(f"Khong the lay duoc mo ta cong ty: {exc}")
+if st.button("Đăng xuất"):
+            st.session_state.pop("user", None)
+            st.switch_page("C:\\Users\\kenda\\Desktop\\New folder (2)\\Greatfut.py")
 
 
