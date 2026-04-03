@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from constants import index_options
 import json
 
-from vnstock import Company, Listing, Quote
+from vnstock import Company, Listing, Quote, Trading
 try:
     from streamlit_elements import elements, mui, html
 except Exception:
@@ -875,16 +875,20 @@ def build_index_dropdown_chart(default_label: str, index_data: dict):
         xaxis_showticklabels=False,
         yaxis_title="Giá",
         template="plotly_white",
-        height=560,
+        height=250,
         updatemenus=[
             {
                 "buttons": buttons,
                 "direction": "down",
                 "showactive": True,
                 "x": 0,
-                "y": 1.12,
+                "y": 1.5,
                 "xanchor": "left",
                 "yanchor": "top",
+                "font": {"size": 9},
+                "pad": {"r": 0, "t": 10, "l": -35, "b": 0},
+
+
             }
         ],
         shapes=shapes_by_index[default_label],
@@ -1067,6 +1071,16 @@ def get_exchange_symbols(exchange_name: str):
 def render_basket_list(target_group_symbol: str, table_key: str) -> None:
     st.subheader(f"Danh sách công ty trong rổ: {target_group_symbol}")
 
+    def _normalize_symbol_col(df: pd.DataFrame) -> pd.DataFrame:
+        if not isinstance(df, pd.DataFrame):
+            return pd.DataFrame(df)
+        if "symbol" in df.columns:
+            return df
+        for alt in ("code", "ticker", "symbol_code", "stock_code"):
+            if alt in df.columns:
+                return df.rename(columns={alt: "symbol"})
+        return df
+
     symbol_options = get_hose_symbols()
     if symbol_options:
         search_q = st.text_input(
@@ -1093,7 +1107,7 @@ def render_basket_list(target_group_symbol: str, table_key: str) -> None:
         )
 
     try:
-        if target_group_symbol == "VNINDEX":
+        if target_group_symbol in ("VNINDEX", "HOSE"):
             basket_df = get_exchange_symbols("HOSE")
         elif target_group_symbol in GROUP_ELIGIBLE:
             basket_df = get_group_symbols(target_group_symbol)
@@ -1104,6 +1118,62 @@ def render_basket_list(target_group_symbol: str, table_key: str) -> None:
             basket_df = basket_df.to_frame(name="symbol").reset_index(drop=True)
         elif not isinstance(basket_df, pd.DataFrame):
             basket_df = pd.DataFrame(basket_df)
+        basket_df = _normalize_symbol_col(basket_df)
+
+        board = None
+        symbols_for_board = []
+        if isinstance(basket_df, pd.DataFrame) and "symbol" in basket_df.columns:
+            symbols_for_board = (
+                basket_df["symbol"].dropna().astype(str).str.strip().tolist()
+            )
+            symbols_for_board = [s for s in symbols_for_board if s]
+
+        if symbols_for_board:
+            trading = Trading(source="KBS")
+            board = trading.price_board(symbols_list=symbols_for_board)
+
+        if (
+            isinstance(board, pd.DataFrame)
+            and isinstance(basket_df, pd.DataFrame)
+            and "symbol" in basket_df.columns
+            and not basket_df.empty
+        ):
+            board_df = _normalize_symbol_col(board.copy())
+            if "symbol" not in board_df.columns:
+                board_df = board_df.reset_index().rename(columns={"index": "symbol"})
+
+            board_cols_priority = [
+                "symbol",
+                "exchange",
+                "reference_price",
+                "price_change",
+                "percent_change",
+                "match_price",
+                "match_volume",
+                "total_volume",
+                "total_value",
+                "bid_price_1",
+                "bid_vol_1",
+                "bid_price_2",
+                "bid_vol_2",
+                "bid_price_3",
+                "bid_vol_3",
+                "ask_price_1",
+                "ask_vol_1",
+                "ask_price_2",
+                "ask_vol_2",
+                "ask_price_3",
+                "ask_vol_3",
+                "foreign_buy_volume",
+                "foreign_sell_volume",
+            ]
+            board_cols = [c for c in board_cols_priority if c in board_df.columns]
+            if len(board_cols) > 1:
+                basket_df = basket_df.merge(
+                    board_df[board_cols],
+                    on="symbol",
+                    how="left",
+                )
     except Exception as exc:
         st.warning(f"Không lấy được list cho {target_group_symbol}: {exc}")
         basket_df = pd.DataFrame()
@@ -1112,7 +1182,32 @@ def render_basket_list(target_group_symbol: str, table_key: str) -> None:
         st.info(f"Không có danh sách thành phần cho {target_group_symbol}")
         return
 
-    preferred_cols = ["symbol", "organ_name", "exchange", "icb_name2", "icb_name3"]
+    preferred_cols = [
+        "symbol",
+        "exchange",
+        "reference_price",
+        "price_change",
+        "percent_change",
+        "match_price",
+        "match_volume",
+        "total_volume",
+        "total_value",
+        "bid_price_1",
+        "bid_vol_1",
+        "bid_price_2",
+        "bid_vol_2",
+        "bid_price_3",
+        "bid_vol_3",
+        "ask_price_1",
+        "ask_vol_1",
+        "ask_price_2",
+        "ask_vol_2",
+        "ask_price_3",
+        "ask_vol_3",
+        "foreign_buy_volume",
+        "foreign_sell_volume",
+        "organ_name"
+    ]
     show_cols = [c for c in preferred_cols if c in basket_df.columns]
     if not show_cols:
         show_cols = basket_df.columns.tolist()
@@ -1121,8 +1216,38 @@ def render_basket_list(target_group_symbol: str, table_key: str) -> None:
     if "symbol" in show_df.columns:
         show_df = show_df.sort_values("symbol").reset_index(drop=True)
 
+    col_name_map = {
+        "exchange": "Sàn",
+        "reference_price": "Giá tham chiếu",
+        "price_change": "Thay đổi",
+        "percent_change": "% Thay đổi",
+        "match_price": "Giá khớp",
+        "match_volume": "KL khớp",
+        "total_volume": "Tổng KL",
+        "total_value": "Tổng GT",
+        "bid_price_1": "Giá mua 1",
+        "bid_vol_1": "KL mua 1",
+        "bid_price_2": "Giá mua 2",
+        "bid_vol_2": "KL mua 2",
+        "bid_price_3": "Giá mua 3",
+        "bid_vol_3": "KL mua 3",
+        "ask_price_1": "Giá bán 1",
+        "ask_vol_1": "KL bán 1",
+        "ask_price_2": "Giá bán 2",
+        "ask_vol_2": "KL bán 2",
+        "ask_price_3": "Giá bán 3",
+        "ask_vol_3": "KL bán 3",
+        "foreign_buy_volume": "NN mua",
+        "foreign_sell_volume": "NN bán",
+        "organ_name": "Tên công ty",
+        "icb_name2": "Ngành",
+        "icb_name3": "Nhóm ngành",
+        "symbol": "Mã",
+    }
+    display_df = show_df.rename(columns=col_name_map)
+
     event = st.dataframe(
-        show_df,
+        display_df,
         use_container_width=True,
         on_select="rerun",
         selection_mode="single-row",
@@ -1141,7 +1266,6 @@ def render_basket_list(target_group_symbol: str, table_key: str) -> None:
 
 tabs = st.tabs(["VNIndex", "Danh sách các rổ cổ phiếu","Cổ phiếu yêu thích"])
 with tabs[0]:
-    st.markdown("---")
     render_basket_list(group_symbol, "basket_table_select_current")
 
 with tabs[1]:

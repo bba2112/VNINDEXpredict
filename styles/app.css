@@ -4,6 +4,8 @@
 .topbar {
     display: flex;
     align-items: center;
+    position: fixed;
+    top: 10%;
     gap: 3px;
     padding: 4px 6px;
     border-radius: 10px;

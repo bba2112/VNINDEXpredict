@@ -1,13 +1,46 @@
+import os
 import pyodbc
 import streamlit as st
 
 def get_conn():
+    # Prefer cloud credentials from Streamlit secrets / env.
+    try:
+        sql_server = st.secrets.get("SQL_SERVER")
+        sql_db = st.secrets.get("SQL_DB")
+        sql_user = st.secrets.get("SQL_USER")
+        sql_password = st.secrets.get("SQL_PASSWORD")
+    except Exception:
+        sql_server = None
+        sql_db = None
+        sql_user = None
+        sql_password = None
+
+    sql_server = sql_server or os.getenv("SQL_SERVER")
+    sql_db = sql_db or os.getenv("SQL_DB")
+    sql_user = sql_user or os.getenv("SQL_USER")
+    sql_password = sql_password or os.getenv("SQL_PASSWORD")
+    sql_driver = os.getenv("SQL_DRIVER", "ODBC Driver 17 for SQL Server")
+
+    if sql_server and sql_db and sql_user and sql_password:
+        return pyodbc.connect(
+            f"DRIVER={{{sql_driver}}};"
+            f"SERVER={sql_server};"
+            f"DATABASE={sql_db};"
+            f"UID={sql_user};"
+            f"PWD={sql_password};"
+            "Encrypt=yes;"
+            "TrustServerCertificate=yes;"
+            "Connection Timeout=30;"
+        )
+
+    # Local dev fallback (will not work on Streamlit Cloud).
     return pyodbc.connect(
-        "DRIVER={ODBC Driver 17 for SQL Server};"
+        f"DRIVER={{{sql_driver}}};"
         "SERVER=DESKTOP-S5JDT28\\SQLEXPRESS;"
         "DATABASE=StockDB;"
         "trusted_connection=yes;"
         "TrustServerCertificate=yes;"
+        "Connection Timeout=30;"
     )
 st.markdown(
     """
