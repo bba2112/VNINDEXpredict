@@ -1,4 +1,4 @@
-###################################################
+﻿###################################################
 
 import streamlit as st
 import pandas as pd
@@ -14,7 +14,7 @@ from common import load_css, render_topbar
 st.set_page_config(page_title="Greatfut - VNIndex & Stock Profile")
 load_css()
 
-### Đóng SIDEBAR ### 
+### Dấu SIDEBAR ### 
 st.markdown(
     """
     <style>
@@ -26,7 +26,7 @@ st.markdown(
 
 # Topbar
 _ticker_default = (
-    "Tin nhanh: VNINDEX biến động mạnh trong phiên | VN30 giữ nhịp | "
+    "Tin nhanh: VNINDEX biến động trong phiên đầu tuần | VN30 giữ nhịp | "
     "Thanh khoản cải thiện | Cập nhật từ nguồn API sẽ thay thế nội dung này"
 )
 TICKER_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ticker_text.txt")
@@ -111,6 +111,98 @@ def get_database_url():
     return (
         f"mssql+pyodbc://@{sql_server}/{sql_db}"
         f"?driver={driver_param}&trusted_connection=yes")
+
+def _normalize_columns(cols):
+    return {str(c).strip().lower(): c for c in cols}
+
+
+def _pick_column(cols_map, candidates):
+    for cand in candidates:
+        key = cand.lower()
+        if key in cols_map:
+            return cols_map[key]
+    return None
+
+
+def _load_table_columns(engine, table_name):
+    query = text(
+        """
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = :table_name
+        """
+    )
+    try:
+        cols_df = pd.read_sql(query, engine, params={"table_name": table_name})
+        return cols_df["COLUMN_NAME"].dropna().astype(str).tolist()
+    except Exception:
+        return []
+
+
+def load_market_cap_top(engine, table_name, symbols, top_n=10):
+    cols = _load_table_columns(engine, table_name)
+    if not cols:
+        return pd.DataFrame()
+
+    cols_map = _normalize_columns(cols)
+    symbol_col = _pick_column(cols_map, ["symbol", "ticker", "code"])
+    time_col = _pick_column(cols_map, ["time", "date", "datetime", "trading_date"])
+    close_col = _pick_column(cols_map, ["close", "close_price", "price_close", "adj_close"])
+    cap_col = _pick_column(cols_map, ["market_cap", "marketcap", "market_capitalization", "mktcap", "cap", "vonhoa", "von_hoa"])
+    shares_col = _pick_column(
+        cols_map,
+        ["shares_outstanding", "outstanding_shares", "share_outstanding", "shares", "so_luong_luu_hanh", "shares_float"],
+    )
+
+    if symbol_col is None or time_col is None:
+        return pd.DataFrame()
+
+    select_cols = [symbol_col, time_col]
+    if close_col:
+        select_cols.append(close_col)
+    if cap_col:
+        select_cols.append(cap_col)
+    if shares_col and shares_col not in select_cols:
+        select_cols.append(shares_col)
+
+    cols_sql = ", ".join(f"[{c}]" for c in select_cols)
+    query = text(
+        f"""
+        WITH latest AS (
+            SELECT {cols_sql},
+                   ROW_NUMBER() OVER (PARTITION BY [{symbol_col}] ORDER BY [{time_col}] DESC) AS rn
+            FROM dbo.{table_name}
+        )
+        SELECT {cols_sql}
+        FROM latest
+        WHERE rn = 1
+        """
+    )
+
+    try:
+        df = pd.read_sql(query, engine)
+    except Exception:
+        return pd.DataFrame()
+
+    df = df.dropna(subset=[symbol_col])
+    df[symbol_col] = df[symbol_col].astype(str)
+    if symbols:
+        df = df[df[symbol_col].isin(symbols)]
+
+    if cap_col and cap_col in df.columns:
+        df["market_cap_calc"] = pd.to_numeric(df[cap_col], errors="coerce")
+    elif close_col and shares_col and close_col in df.columns and shares_col in df.columns:
+        df["market_cap_calc"] = (
+            pd.to_numeric(df[close_col], errors="coerce")
+            * pd.to_numeric(df[shares_col], errors="coerce")
+        )
+    else:
+        return pd.DataFrame()
+
+    df = df.dropna(subset=["market_cap_calc"])
+    df = df.sort_values("market_cap_calc", ascending=False).head(top_n)
+    df = df.rename(columns={symbol_col: "symbol"})
+    return df[["symbol", "market_cap_calc"]].copy()
 
 
 try:
@@ -280,7 +372,7 @@ if price_df.empty:
 price_df["time"] = pd.to_datetime(price_df["time"], errors="coerce")
 price_df = price_df.dropna(subset=["time"])
 
-st.subheader(f"Giá biến động của cổ phiếu: {selected_symbol}")
+st.subheader(f"Giá biến động trong các phiên: {selected_symbol}")
 df = price_df.copy()
 fig = go.Figure(
     data=[
@@ -334,7 +426,7 @@ try:
 except Exception as exc:
     st.info(f"Khong the ve bieu do vnstock viz: {exc}")
 
-st.subheader(f"Giá biến động và khối lượng: {selected_symbol}")
+st.subheader(f"Giá biến động: {selected_symbol}")
 try:
     combo_selected_df = (
         price_df[price_df["symbol"].astype(str) == str(selected_symbol)]
@@ -375,7 +467,7 @@ try:
 except Exception as exc:
     st.info(f"Khong the ve combo viz: {exc}")
 
-st.subheader(f"Heatmap lợi nhuận trung bình theo tháng: {selected_symbol}")
+st.subheader(f"Heatmap lợi nhuận theo tháng: {selected_symbol}")
 try:
     heatmap_df = (
         price_df[price_df["symbol"].astype(str) == str(selected_symbol)]
@@ -398,7 +490,7 @@ try:
 
     heatmap_result = return_pivot.viz.heatmap(
         figsize=(10, 6),
-        title=f"{selected_symbol} - Thống kê lợi nhuận trung bình theo tháng trong năm (%)",
+        title=f"{selected_symbol} - Thống kê lợi nhuận trung bình theo năm (%)",
         annot=True,
         cmap="RdYlGn",
     )

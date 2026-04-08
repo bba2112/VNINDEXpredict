@@ -932,7 +932,7 @@ def render_main_charts() -> None:
     st.session_state["main_chart_start"] = start_date
     st.session_state["main_chart_end"] = end_date
 
-    chart1, chart2, chart3, chart4 = st.columns([5, 5, 5, 5], gap="small")
+    chart1, chart2, chart3, chart4,chart5 = st.columns([5, 5, 5, 5,8], gap="small")
     with chart1:
         st.plotly_chart(
             build_index_dropdown_chart(selected_label, index_data),
@@ -957,6 +957,29 @@ def render_main_charts() -> None:
             use_container_width=True,
             key="chart_4",
         )
+    with chart5:
+        column1,column2,column3 = st.columns([1,1,1])
+        with column1:
+            st.write("Chỉ số")
+            st.write("VN-Index")
+            st.write("VN30")
+            st.write("HNX30")
+            st.write("VN100")
+            st.write("UPCOM")   
+        with column2:
+            st.write("Điểm")
+            st.write(f"{df_main['close'].iloc[-1]:,.2f}")
+            st.write(f"{index_data['VN30'][0]['close'].iloc[-1]:,.2f}")
+            st.write(f"{index_data['HNX30'][0]['close'].iloc[-1]:,.2f}")
+            st.write(f"{index_data['VN100'][0]['close'].iloc[-1]:,.2f}")
+            st.write(f"{index_data['UPCOM'][0]['close'].iloc[-1]:,.2f}")
+        with column3:
+            st.write("Biến động %")
+            st.write(f"{((df_main['close'].iloc[-1] - ref_price_9h) / ref_price_9h * 100):+.2f}%")
+            st.write(f"{((index_data['VN30'][0]['close'].iloc[-1] - index_data['VN30'][1]) / index_data['VN30'][1] * 100):+.2f}%")
+            st.write(f"{((index_data['HNX30'][0]['close'].iloc[-    1] - index_data['HNX30'][1]) / index_data['HNX30'][1] * 100):+.2f}%")
+            st.write(f"{((index_data['VN100'][0]['close'].iloc[-1] - index_data['VN100'][1]) / index_data['VN100'][1] * 100):+.2f}%")
+            st.write(f"{((index_data['UPCOM'][0]['close'].iloc[-1] - index_data['UPCOM'][1]) / index_data['UPCOM'][1] * 100):+.2f}%")
 
 
 if hasattr(st, "fragment"):
