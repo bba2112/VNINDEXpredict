@@ -4,6 +4,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 import matplotlib.pyplot as plt
 from constants import index_options
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 
 from vnstock import Company, Listing, Quote, Trading

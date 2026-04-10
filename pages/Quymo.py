@@ -1,6 +1,9 @@
 ﻿import pandas as pd
 import streamlit as st
 from vnstock import Fund
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 from common import load_css, render_topbar
 import os

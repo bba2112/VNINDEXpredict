@@ -5,6 +5,8 @@ from datetime import date, timedelta
 from vnstock.explorer.misc.gold_price import sjc_gold_price
 from vnstock.explorer.misc.exchange_rate import *
 from datetime import date
+from dotenv import load_dotenv
+load_dotenv()
 import os
 try:
     from gemini_ai import GeminiAI

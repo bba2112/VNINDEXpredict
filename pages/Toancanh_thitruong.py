@@ -5,6 +5,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from vnstock import Quote
+from dotenv import load_dotenv
+load_dotenv()
+
 
 import pandas as pd
 import plotly.graph_objects as go

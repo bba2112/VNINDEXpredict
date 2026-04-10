@@ -7,6 +7,9 @@ import vnstock
 from vnstock import Listing, Vnstock,Company
 from vnstock.common import viz as _vnstock_viz  # noqa: F401 (registers .viz accessor)
 import plotly.graph_objects as go
+from dotenv import load_dotenv
+load_dotenv()
+
 import matplotlib.pyplot as plt
 import os
 from common import load_css, render_topbar
